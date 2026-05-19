@@ -1,0 +1,85 @@
+%%%%%%%% EMNLP 2025 (ARR submission) — MedSkill-E² %%%%%%%%
+
+\documentclass[11pt]{article}
+
+% Use [review] for anonymous submission; switch to [] for camera-ready.
+\usepackage[review]{acl}
+
+% Standard ACL packages
+\usepackage{times}
+\usepackage{latexsym}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{microtype}
+\usepackage{inconsolata}
+
+% Additional packages
+\usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage{multirow}
+\usepackage{booktabs}
+\usepackage[table]{xcolor}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{mathtools}
+\usepackage{amsthm}
+\usepackage{placeins}
+\usepackage[capitalize,noabbrev]{cleveref}
+\usepackage{xspace}
+\usepackage{enumitem}
+\input{math_commands.tex}
+
+% Theorem environments
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{proposition}[theorem]{Proposition}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+
+% Dev / annotation macros
+\newcommand{\jz}[1]{{\color{red}{[JZ: #1]}}}
+\newcommand{\todo}[1]{{\color{orange}{[TODO: #1]}}}
+\newcommand{\placeholder}[1]{%
+  \begin{center}
+  \fcolorbox{red}{yellow!10}{\parbox{0.9\linewidth}{\centering\textbf{[PLACEHOLDER]}\\#1}}
+  \end{center}
+}
+
+% Paper-wide shorthand
+\newcommand{\medskille}{\textsc{MedSkill-E\textsuperscript{2}}\xspace}
+\newcommand{\medskillbench}{\textsc{Med-SkillBench}\xspace}
+\newcommand{\gepamed}{\textsc{GEPA-Med}\xspace}
+\newcommand{\rbu}{\textsc{RBU}\xspace}
+\newcommand{\skillmd}{\texttt{SKILL.md}\xspace}
+
+% Anonymous repo placeholder
+\newcommand{\anonrepo}{\url{https://anonymous.4open.science/r/MedSkill-E2-TODO}}
+
+\title{MedSkill-E\textsuperscript{2}: Evaluating and Evolving \\
+       Medical Agent Skills at Scale}
+
+\author{Anonymous ACL submission}
+
+\begin{document}
+\maketitle
+
+\input{sections/00_abstract}
+\input{sections/01_introduction}
+\input{sections/02_related_work}
+\input{sections/03_method}
+\input{sections/04_experiments}
+\input{sections/05_conclusion}
+
+\section*{Limitations}
+\input{sections/06_limitations}
+
+\section*{Ethical Considerations}
+\input{sections/07_ethical}
+
+\bibliography{custom}
+
+\clearpage
+\appendix
+\input{sections/99_appendix}
+
+\end{document}

@@ -1,0 +1,82 @@
+% !TEX root = ../main.tex
+\section{Related Work}
+\label{sec:related_work}
+
+\subsection{Agent Skills and Skill Benchmarks}
+\label{sec:rw_skills}
+
+Skills extend language-model agents with reusable procedural knowledge: task descriptions, invocation conditions, parameter schemas, and multi-step workflows.
+\citet{skillsbench2026} introduce \textsc{SkillsBench}, evaluating 86~tasks across 11~domains.
+Curated skills boost agent performance by an average of 16.2~percentage points, with the medical domain showing the largest gain (+51.9~pp), while self-generated skills yield near-zero improvement.
+\citet{skillnet2026} scale the effort to over 200K~skills with \textsc{SkillNet}, proposing multi-dimensional \emph{static} evaluation along Safety, Completeness, Executability, Maintainability, and Cost-awareness.
+
+Both contributions establish that skill quality matters.
+However, neither grounds its evaluation in \emph{execution traces}: \textsc{SkillsBench} measures task-level delta, not whether the skill was actually invoked and followed; \textsc{SkillNet} scores interface quality without running the skill in an isolated sandbox.
+\medskille bridges this gap by evaluating 1,462~medical skills (917~Tier-A) at the execution level, quantifying the \rbu gap between reading a \skillmd and correctly executing it.
+
+\subsection{Medical and Biomedical Agent Benchmarks}
+\label{sec:rw_medical_bench}
+
+Recent medical benchmarks have diversified the evaluation surface for language-model agents.
+\citet{medagentbench2025} present \textsc{MedAgentBench}, comprising 300~FHIR-compliant EHR tasks that test interactive clinical actions.
+\citet{healthbench2025} release \textsc{HealthBench} with 5,000~multi-turn health dialogues scored by 262~physician-authored rubrics.
+In biomedical research, \citet{labbench2024} propose \textsc{LAB-Bench}, covering 2,400+~biology research questions spanning LitQA, DBQA, and ProtocolQA.
+\citet{hle2025} introduce the \textsc{Humanity's Last Exam} (HLE), a 2,500-question expert-level benchmark published in \emph{Nature}, whose Biomedicine subset---together with \textsc{LAB-Bench}---has proven effective for evaluating biomedical agents \citep{stella2025}.
+Interactive tool-use benchmarks such as $\tau$-bench \citep{taubench2024} and \textsc{ToolSandbox} \citep{toolsandbox2024} further formalize stateful, multi-turn evaluation with programmatic verification.
+\citet{medagentgym2025} contribute \textsc{MedAgentGym}, framing medical agent training as a reinforcement learning problem over clinical environments.
+
+These benchmarks assess \emph{task-level} success.
+\medskille operates at a complementary \emph{skill level}: given a specific \skillmd, does the agent read, invoke, and correctly follow the skill specification?
+
+\subsection{Tool and Skill Description Optimization}
+\label{sec:rw_tool_opt}
+
+A growing body of work shows that how tools are \emph{described} is itself a performance lever.
+\citet{easytool2024} compress verbose, heterogeneous tool documentation into concise, standardized instructions (\textsc{EasyTool}).
+\citet{play2prompt2025} let agents interactively explore tools to auto-generate high-quality usage demonstrations (\textsc{Play2Prompt}).
+\citet{tracefree2026} address settings where execution traces are unavailable, using curriculum transfer from trace-rich to trace-free environments to generalize tool-description rewriting (\textsc{Trace-Free+}).
+The ReAct paradigm \citep{react2023} further underscores the tight coupling between reasoning traces and tool invocation fidelity.
+
+These methods target \emph{generic} tool descriptions---typically API signatures or short docstrings.
+Medical skills are substantially more complex: they encode domain terminology, parameter schemas, safety boundaries, dependency constraints, and multi-step clinical workflows within a single \skillmd.
+Our work extends description optimization to full-length, structured medical skill documents.
+
+\subsection{Prompt Evolution and Reflective Optimization}
+\label{sec:rw_gepa}
+
+\citet{gepa2025} propose \textsc{GEPA}, a reflective natural-language evolution framework with Pareto selection.
+\textsc{GEPA} converts execution traces and failure modes into natural-language reflections, applies genetic-style mutations, and selects non-dominated prompt variants.
+It outperforms GRPO by ${\sim}6$\% on average and requires up to 35$\times$ fewer rollouts than reinforcement learning baselines.
+
+Our extension, \gepamed, adapts this paradigm to medical skill evolution.
+The optimization target shifts from short system prompts to complete \skillmd files that are longer and more structured.
+The objective becomes multi-dimensional: not single-task accuracy but invocation fidelity, task completion, output quality, and safety adherence---reflecting the multi-faceted nature of medical execution quality.
+
+\paragraph{Positioning.}
+\Cref{tab:rw_comparison} summarizes how \medskille relates to prior work across five key dimensions.
+
+\begin{table}[t]
+\centering
+\small
+\setlength{\tabcolsep}{3pt}
+\caption{Comparison of \medskille with related work. \emph{Eval.}: task-level (T) or skill-level (S); parenthetical indicates execution-based (E) or static (S) evaluation. \emph{Opt.\ Target}: what is optimized. \emph{Scale}: number of evaluation items.}
+\label{tab:rw_comparison}
+\begin{tabular}{@{}lcccr@{}}
+\toprule
+\textbf{Work} & \textbf{Eval.} & \textbf{Domain} & \textbf{Opt.\ Target} & \textbf{Scale} \\
+\midrule
+SkillsBench     & T (S)  & General   & ---            & 86 \\
+SkillNet        & S      & General   & ---            & 200K+ \\
+MedAgentBench   & T (E)  & Clinical  & ---            & 300 \\
+HealthBench     & T (E)  & Health    & ---            & 5,000 \\
+LAB-Bench       & T (S)  & Biomed.   & ---            & 2,400+ \\
+HLE             & T (S)  & Multi     & ---            & 2,500 \\
+EasyTool        & ---    & General   & Tool desc.     & --- \\
+Play2Prompt     & ---    & General   & Tool desc.     & --- \\
+Trace-Free+     & ---    & General   & Tool desc.     & --- \\
+GEPA            & T (E)  & General   & Prompt         & --- \\
+\midrule
+\textbf{\medskille} & \textbf{S (E)} & \textbf{Medical} & \textbf{\skillmd} & \textbf{1,462} \\
+\bottomrule
+\end{tabular}
+\end{table}

@@ -1,0 +1,61 @@
+% !TEX root = ../main.tex
+\section{Introduction}
+\label{sec:intro}
+
+Large language model (LLM) agents increasingly rely on external \emph{skills}---structured tool descriptions that extend model capabilities beyond parametric knowledge---to perform domain-specific tasks.
+Recent work demonstrates that curated skill libraries substantially improve agent performance: \citet{skillsbench2026} report an average gain of 16.2 percentage points across domains, with the medical domain exhibiting the largest improvement at 51.9 percentage points.
+This finding underscores the critical role of skill quality in high-stakes settings such as clinical decision support, biomedical literature analysis, and drug safety assessment.
+
+Despite this promise, three gaps hinder progress toward reliable medical agent skills.
+
+\paragraph{Gap 1: Task-level evaluation obscures skill-level failures.}
+Existing medical agent benchmarks evaluate end-to-end task success \citep{healthbench2025, medagentbench2025, labbench2024} but do not isolate whether the agent correctly \emph{executed} the skill specification it was given.
+An agent may answer a question correctly by ignoring a poorly written skill description entirely, or it may fail a task despite faithfully following a description that lacks critical information.
+Task-level metrics conflate these fundamentally different failure modes.
+
+\paragraph{Gap 2: Skills are treated as static artifacts.}
+Current skill development follows a ``write once, deploy forever'' paradigm \citep{skillnet2026, easytool2024}.
+Once a \skillmd file is authored, it is rarely revisited---even when downstream execution data reveals systematic failure patterns.
+This stands in contrast to conventional software engineering, where documentation is continuously refined based on usage feedback.
+
+\paragraph{Gap 3: Description optimization at scale remains unexplored.}
+Prompt evolution methods \citep{gepa2025, play2prompt2025} have shown that iterative refinement of natural-language specifications can improve LLM performance without weight updates.
+However, these techniques have not been applied to large-scale skill libraries, particularly in the medical domain where description precision directly affects patient safety.
+
+\medskille addresses these gaps through an \textbf{evaluate--diagnose--evolve} closed loop that treats skill descriptions as first-class, evolvable agent interfaces rather than frozen documentation.
+
+\paragraph{Contribution 1: \medskillbench.}
+We introduce the first large-scale skill-level execution benchmark for medical AI agents.
+\medskillbench aggregates 1,462 skills from three open-source medical skill repositories and evaluates each in an isolated sandbox environment.
+A mandatory \emph{read-first} protocol ensures the agent must parse the \skillmd specification before attempting execution.
+An LLM-as-judge scores each execution trajectory along eight binary dimensions---\emph{skill invocation}, \emph{correct usage}, \emph{task completion}, \emph{tool execution success}, \emph{output quality}, \emph{reasoning quality}, \emph{efficiency}, and \emph{trajectory quality}---providing fine-grained diagnostic signal rather than a single pass/fail label.
+
+\paragraph{Contribution 2: \rbu gap quantification.}
+Using \medskillbench, we identify and quantify a systematic \emph{read-but-not-use} (\rbu) gap: agents invoke skills at a rate of 96.2\% but complete the specified tasks at only 74.3\%, yielding a 22-percentage-point gap.
+This gap represents a \emph{specification grounding failure}---the model recognizes what a skill describes but cannot reliably translate that description into correct execution.
+Stratifying by \texttt{tool\_type} reveals that the gap is strongly modulated by skill interface design: guide-style skills (no executable tool) exhibit an \rbu gap of 0.269, while tool-based skills show substantially smaller gaps (CLI: 0.106; Python: 0.099; mixed: 0.069; R: 0.111).
+This finding shifts the diagnosis from ``models cannot use tools'' to ``models struggle most when skill descriptions lack executable grounding.''
+
+\paragraph{Contribution 3: \gepamed.}
+We propose \gepamed, a reflective prompt evolution method adapted from GEPA \citep{gepa2025} for medical \skillmd optimization.
+\gepamed uses execution trajectories and judge feedback from \medskillbench as evolutionary signal to iteratively rewrite skill descriptions---improving groundability without any model weight changes.
+\todo{GEPA-Med experimental results pending; methodology described in \S\ref{subsec:gepa}.}
+
+Our work is organized around four research questions:
+\begin{enumerate}[nosep,leftmargin=*,label=\textbf{RQ\arabic*:}]
+    \item Do medical agent skills exhibit a systematic read-but-not-use gap between specification comprehension and execution?
+    \item Is the gap primarily attributable to environment dependency or to description-level grounding failure?
+    \item Can description-only evolution (no weight changes) improve skill groundability?
+    \item Do evolved skill descriptions transfer across different LLM backends?
+\end{enumerate}
+
+\paragraph{Positioning.}
+Following the taxonomy of \citet{skillsbench2026}, \medskille operates primarily at the \emph{Skill Deployment} tier (T2), evaluating and improving skills post-authoring.
+It secondarily informs \emph{Skill Development} (T1) by identifying which description patterns yield higher groundability.
+Unlike reinforcement learning approaches to post-deployment optimization \citep{tracefree2026}, \medskille is entirely training-free: it modifies only the natural-language skill description, making it applicable to closed-weight models and resource-constrained settings alike.
+
+The remainder of this paper is structured as follows.
+\S\ref{sec:related_work} reviews related work.
+\S\ref{sec:method} details our framework, including the \medskillbench evaluation protocol and the \gepamed evolution methodology.
+\S\ref{sec:experiments} reports experimental results and discusses implications.
+\S\ref{sec:conclusion} concludes.
