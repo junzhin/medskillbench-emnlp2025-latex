@@ -66,7 +66,8 @@ Binary dimensions yield unambiguous pass/fail decisions that directly inform the
 \paragraph{The Read-But-Not-Use Gap.}
 We formalize the gap between invocation and completion as:
 \begin{equation}
-    \Delta_{\textsc{RBU}} = \frac{1}{|\mathcal{S}|}\sum_{s \in \mathcal{S}} y_1^{(s)} \;-\; \frac{1}{|\mathcal{S}|}\sum_{s \in \mathcal{S}} y_3^{(s)}.
+    \Delta_{\textsc{RBU}} = \bar{y}_1 - \bar{y}_3, \quad
+    \bar{y}_k = \tfrac{1}{|\mathcal{S}|}\textstyle\sum_{s \in \mathcal{S}} y_k^{(s)}.
     \label{eq:rbu}
 \end{equation}
 A large $\Delta_{\textsc{RBU}}$ indicates that agents can read skill descriptions but fail to ground them into correct execution---a specification-level failure invisible to benchmarks measuring only end-to-end task success.
@@ -109,7 +110,10 @@ Allowed mutations include: rewriting parameter specifications, compressing proce
 The evolved $d'$ is re-evaluated on \medskillbench.
 Selection is framed as multi-objective optimization:
 \begin{equation}
-    \max_{d' \in \mathcal{D}} \;\bigl(\text{InvocationRate}(d'),\; \text{CompletionRate}(d'),\; \text{OutputQuality}(d')\bigr).
+    \begin{split}
+    \max_{d' \in \mathcal{D}} \;\bigl(&\textsc{Invocation}(d'),\\
+    &\textsc{Completion}(d'),\; \textsc{Quality}(d')\bigr).
+    \end{split}
     \label{eq:pareto}
 \end{equation}
 Descriptions on the Pareto front are retained; dominated variants are discarded.
