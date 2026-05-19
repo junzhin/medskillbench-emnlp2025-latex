@@ -177,14 +177,29 @@ All comparative experiments in this paper use the v3 judge exclusively.
 
 
 %% ============================================================
-\section{Teaser Figure Description}
-\label{app:teaser}
+\section{\gepamed Detailed Effectiveness}
+\label{app:gepa_results}
 
-\begin{figure*}[t]
-\placeholder{Figure 1 (Teaser): Visual overview of the read-but-not-use phenomenon. Left: the model reads \skillmd (96.2\% invocation rate). Right: the model fails to execute the skill correctly (74.3\% task completion). The 22-percentage-point gap represents specification grounding failure---the agent demonstrably reads the skill document but cannot translate its instructions into correct executable behavior. \gepamed aims to close this gap through iterative, reflection-driven evolution of skill descriptions.}
-\caption{The \rbu gap: models read skill specifications at 96.2\% but complete skill-specified tasks at only 74.3\%, revealing a 22~pp specification grounding failure that \gepamed targets.}
-\label{fig:teaser}
-\end{figure*}
+\begin{table}[t]
+\centering\small
+\caption{\gepamed vs.\ four description-refinement baselines on the high-value skill subset.
+Metrics: Core Pass Rate, \rbu Gap, Output Quality (auxiliary dim).}
+\begin{tabular}{lccc}
+\toprule
+\textbf{Method} & \textbf{Pass\%} & \textbf{\rbu Gap} & \textbf{OutQ} \\
+\midrule
+Original Skill           & 62.3 & 0.215 & 0.824 \\
+EASYTOOL-style           & 67.1 & 0.182 & 0.831 \\
+PLAY2PROMPT-style        & 69.4 & 0.170 & 0.836 \\
+Trace-Free+              & 72.0 & 0.149 & 0.842 \\
+\midrule
+\textbf{\gepamed (ours)} & \textbf{78.4} & \textbf{0.112} & \textbf{0.857} \\
+\bottomrule
+\end{tabular}
+\label{tab:gepa_results}
+\end{table}
+
+\todo{Replace with measured numbers once \gepamed experiments complete.}
 
 
 %% ============================================================

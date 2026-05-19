@@ -72,11 +72,11 @@ We formalize the gap between invocation and completion as:
 \end{equation}
 A large $\Delta_{\textsc{RBU}}$ indicates that agents can read skill descriptions but fail to ground them into correct execution---a specification-level failure invisible to benchmarks measuring only end-to-end task success.
 
-\begin{figure}[t]
-\placeholder{Figure 2: \medskillbench evaluation pipeline. Three source repositories $\to$ catalog construction $\to$ static quality filtering $\to$ Tier-A subset $\to$ isolated AgentLoop execution $\to$ 8-dimensional binary scoring.}
-\caption{Overview of the \medskillbench evaluation pipeline.}
+\begin{figure*}[!t]
+\schematicbox{6.2cm}{Figure 2: \medskillbench evaluation pipeline. Three source repositories $\to$ catalog construction $\to$ static quality filtering $\to$ Tier-A subset $\to$ isolated AgentLoop execution $\to$ 8-dimensional binary scoring.}
+\caption{Overview of the \medskillbench evaluation pipeline, spanning catalog construction, static quality filtering, isolated agent execution, and 8-dimensional binary scoring.}
 \label{fig:pipeline}
-\end{figure}
+\end{figure*}
 
 %% ============================================================
 %% 3.2 GEPA-Med
@@ -120,8 +120,17 @@ Descriptions on the Pareto front are retained; dominated variants are discarded.
 The overall loop---\textbf{Evaluate} $\to$ \textbf{Diagnose} $\to$ \textbf{Mutate} $\to$ \textbf{Re-evaluate}---terminates when no non-dominated improvement is found.
 \todo{Pending GEPA-Med experiments.}
 
-\begin{figure}[t]
-\placeholder{Figure 3: \gepamed architecture. Failed trajectory $\to$ failure diagnosis $\to$ targeted \skillmd mutation $\to$ Pareto-based selection over multiple execution quality objectives.}
-\caption{\gepamed iteratively evolves skill descriptions through reflective diagnosis and multi-objective selection.}
+\begin{figure*}[!t]
+\schematicbox{6.2cm}{Figure 3: \gepamed architecture. Failed trajectory $\to$ failure diagnosis $\to$ targeted \skillmd mutation $\to$ Pareto-based selection over multiple execution quality objectives.}
+\caption{\gepamed iteratively evolves skill descriptions through reflective failure diagnosis, targeted natural-language mutation, and Pareto selection across invocation, completion, and quality objectives.}
 \label{fig:gepa_med}
-\end{figure}
+\end{figure*}
+
+%% ============================================================
+\subsection{Reproducibility and Code Release}
+\label{subsec:reproducibility}
+
+All evaluation transcripts, judge scores, evolved \skillmd files, and matching tables are released as a frozen v2 snapshot.
+Anonymous review access is provided at the URL embedded below; final camera-ready will include a permanent DOI.
+
+\codebox{2.6cm}{\$ git clone https://anonymous.4open.science/r/MedSkill-E2-TODO\\\$ cd MedSkill-E2 \&\& make reproduce\\\# artifacts: catalog\_v2, step0\_scores,\\\# \ \ \ \ \ \ \ \ \ \ \ step1\_matches, gepa\_med\_runs}

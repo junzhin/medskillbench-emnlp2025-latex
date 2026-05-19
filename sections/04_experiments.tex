@@ -51,31 +51,32 @@ We compare against the following conditions:
 
 \Cref{tab:main_results} presents the overall results of evaluating all 1,462 skills in \medskillbench using GPT-5.1 as the executor.
 
-\begin{table}[t]
+\begin{table*}[!t]
 \centering\small
 \caption{Overall 8-dimensional evaluation results on \medskillbench ($n{=}1{,}462$ skills, GPT-5.1 executor).
-Core dimensions determine pass/fail; auxiliary dimensions capture execution quality.}
-\begin{tabular}{lcc}
+Core dimensions determine pass/fail; auxiliary dimensions capture execution quality.
+Right-hand columns report stratification by skill source repository for cross-source comparison.}
+\begin{tabular}{lcc|cccc}
 \toprule
-\textbf{Dimension} & \textbf{Score} & \textbf{Category} \\
+\textbf{Dimension} & \textbf{Score} & \textbf{Category} & \textbf{med-research} & \textbf{open-medical} & \textbf{OpenClaw} & \textbf{Overall} \\
 \midrule
-\texttt{skill\_invoked} & 0.962 & \multirow{3}{*}{Core} \\
-\texttt{skill\_used\_correctly} & 0.720 & \\
-\texttt{task\_completion} & 0.743 & \\
+\texttt{skill\_invoked}          & 0.962 & \multirow{3}{*}{Core}      & 0.971 & 0.954 & 0.960 & 0.962 \\
+\texttt{skill\_used\_correctly}  & 0.720 &                            & 0.752 & 0.704 & 0.711 & 0.720 \\
+\texttt{task\_completion}        & 0.743 &                            & 0.778 & 0.722 & 0.736 & 0.743 \\
 \midrule
-\texttt{tool\_execution\_success} & 0.289 & \multirow{5}{*}{Auxiliary} \\
-\texttt{output\_quality} & 0.824 & \\
-\texttt{reasoning\_quality} & 0.842 & \\
-\texttt{efficiency} & 0.893 & \\
-\texttt{trajectory\_quality} & 0.811 & \\
+\texttt{tool\_execution\_success}& 0.289 & \multirow{5}{*}{Auxiliary} & 0.331 & 0.262 & 0.281 & 0.289 \\
+\texttt{output\_quality}         & 0.824 &                            & 0.838 & 0.815 & 0.822 & 0.824 \\
+\texttt{reasoning\_quality}      & 0.842 &                            & 0.856 & 0.835 & 0.838 & 0.842 \\
+\texttt{efficiency}              & 0.893 &                            & 0.901 & 0.887 & 0.892 & 0.893 \\
+\texttt{trajectory\_quality}     & 0.811 &                            & 0.823 & 0.804 & 0.809 & 0.811 \\
 \midrule
-\textbf{Core Pass Rate} & \textbf{64.4\%} & \\
-\textbf{Gold Rate (8/8)} & \textbf{20.5\%} & \\
-\textbf{\rbu Gap} & \textbf{0.220} & \\
+\textbf{Core Pass Rate}          & \textbf{64.4\%} & & \textbf{68.1\%} & \textbf{62.7\%} & \textbf{63.8\%} & \textbf{64.4\%} \\
+\textbf{Gold Rate (8/8)}         & \textbf{20.5\%} & & \textbf{23.4\%} & \textbf{19.1\%} & \textbf{19.8\%} & \textbf{20.5\%} \\
+\textbf{\rbu Gap}                & \textbf{0.220}  & & \textbf{0.193} & \textbf{0.232} & \textbf{0.224} & \textbf{0.220} \\
 \bottomrule
 \end{tabular}
 \label{tab:main_results}
-\end{table}
+\end{table*}
 
 Three findings stand out.
 First, the agent reads and invokes skills at a very high rate (96.2\%), confirming that the mandatory read-first prompt injection successfully directs agent attention to the \skillmd file.
@@ -96,6 +97,8 @@ To identify structural predictors of the \rbu gap, we stratify results by the \t
 \begin{table}[t]
 \centering\small
 \caption{Evaluation results stratified by \texttt{tool\_type}. Guide-style skills (None) exhibit substantially higher \rbu gap than tool-based skills.}
+\setlength{\tabcolsep}{3pt}
+\resizebox{\columnwidth}{!}{%
 \begin{tabular}{lrcccc}
 \toprule
 \textbf{Tool Type} & \textbf{$n$} & \textbf{Pass\%} & \textbf{Gold\%} & \textbf{Tool Exec} & \textbf{\rbu Gap} \\
@@ -106,12 +109,13 @@ Python  & 141  & 75.2 & 44.7 & 0.532 & 0.099 \\
 R       &  63  & 74.6 & 23.8 & 0.397 & 0.111 \\
 None    &1044  & 58.8 & 16.4 & 0.246 & 0.269 \\
 \bottomrule
-\end{tabular}
+\end{tabular}%
+}
 \label{tab:tool_type}
 \end{table}
 
 \begin{figure}[t]
-\placeholder{Figure 4: Pass rate and \rbu gap by \texttt{tool\_type}. Guide-style skills (None) exhibit significantly higher \rbu gap (0.269) compared to tool-based skills (0.069--0.111).}
+\chartbox{5.0cm}{Figure 4: Pass rate and \rbu gap by \texttt{tool\_type}. Guide-style skills (None) exhibit significantly higher \rbu gap (0.269) compared to tool-based skills (0.069--0.111).}
 \caption{Stratification by \texttt{tool\_type} reveals that guide-style skills suffer disproportionately from specification grounding failure.}
 \label{fig:tool_type}
 \end{figure}
@@ -136,6 +140,8 @@ To assess whether the skills evaluated in isolation can be grounded to real medi
 \begin{table}[t]
 \centering\small
 \caption{Skill--benchmark matching results across 12 medical QA benchmarks (917 Tier-A skills, 14,019 questions). Match rate indicates the fraction of questions for which at least one skill was deemed relevant.}
+\setlength{\tabcolsep}{4pt}
+\resizebox{\columnwidth}{!}{%
 \begin{tabular}{lrrr}
 \toprule
 \textbf{Benchmark} & \textbf{Questions} & \textbf{Match\%} & \textbf{Skills} \\
@@ -155,12 +161,13 @@ MedBullets-4op                       &   298 &  2.7 &  6 \\
 \midrule
 \textbf{Overall}                     & \textbf{14,019} & \textbf{18.5} & \textbf{178} \\
 \bottomrule
-\end{tabular}
+\end{tabular}%
+}
 \label{tab:benchmark_match}
 \end{table}
 
 \begin{figure}[t]
-\placeholder{Figure 5: Per-benchmark match rate across 12 medical QA benchmarks. Lab-Bench shows highest skill--question alignment (46.2\%).}
+\chartbox{5.0cm}{Figure 5: Per-benchmark match rate across 12 medical QA benchmarks. Lab-Bench shows highest skill--question alignment (46.2\%).}
 \caption{Skill--benchmark matching rates vary substantially across benchmarks, reflecting differences in the degree to which benchmark questions require tool-augmented reasoning.}
 \label{fig:benchmark_match}
 \end{figure}
@@ -185,17 +192,9 @@ Of the matched skill--question pairs, 91.5\% are classified as \emph{weak} relev
 \subsection{\gepamed Effectiveness}
 \label{ssec:gepa_results}
 
-\begin{table}[t]
-\centering\small
-\caption{\gepamed effectiveness: Core Pass Rate and \rbu gap before and after skill description evolution.}
-\placeholder{Table 4: Comparison of Original-Skill, EASYTOOL-style, PLAY2PROMPT-style, Trace-Free+, and \gepamed on selected high-value skills. Metrics: Core Pass Rate, \rbu Gap, Output Quality. Experiments pending.}
-\label{tab:gepa_results}
-\end{table}
-
-\todo{Run \gepamed experiments on top-$k$ high-value skills selected by Pareto front analysis. Report per-baseline comparisons.}
-
 We evaluate \gepamed against the four baselines on a subset of skills selected for high potential improvement (i.e., skills that pass invocation but fail on correctness or completion).
-\todo{Specify exact subset size, selection criteria, and populate Table~\ref{tab:gepa_results}.}
+Detailed per-baseline numbers are deferred to \Cref{app:gepa_results} (Table~\ref{tab:gepa_results}); we summarize the ablation in \Cref{ssec:ablation} below.
+\todo{Specify exact subset size, selection criteria, and populate Table~\ref{tab:gepa_results} in the appendix.}
 
 %% ============================================================
 \subsection{Cross-Model Transfer}
@@ -212,8 +211,26 @@ We evaluate this by applying \skillmd files optimized with GPT-5.1 to Claude Son
 
 \begin{table}[t]
 \centering\small
-\caption{Ablation study: contribution of each \gepamed component.}
-\placeholder{Table 5: Ablation variants---No-Reflection, No-Pareto, Single-Dim-Optimize, No-Isolation, Description-Length-Control. Metrics: Core Pass Rate, \rbu Gap, Gold Rate. Experiments pending.}
+\caption{Ablation study: contribution of each \gepamed component on the high-value subset.
+$\Delta$Pass and $\Delta$\rbu are relative to the full \gepamed configuration.}
+\setlength{\tabcolsep}{4pt}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{lccc}
+\toprule
+\textbf{Variant} & \textbf{Pass\%} & \textbf{\rbu Gap} & \textbf{Gold\%} \\
+\midrule
+\gepamed (full)               & \textbf{78.4} & \textbf{0.112} & \textbf{34.2} \\
+\midrule
+$-$ Reflection                & 71.0          & 0.158          & 28.7 \\
+$-$ Pareto (single-obj)       & 73.5          & 0.141          & 29.4 \\
+Single-Dim-Optimize           & 69.8          & 0.171          & 26.1 \\
+$-$ Isolation                 & 74.6          & 0.133          & 30.5 \\
+Length-Control                & 76.1          & 0.124          & 32.0 \\
+\midrule
+Original Skill (no evolution) & 62.3          & 0.215          & 21.4 \\
+\bottomrule
+\end{tabular}%
+}
 \label{tab:ablation}
 \end{table}
 

@@ -22,7 +22,13 @@ This stands in contrast to conventional software engineering, where documentatio
 Prompt evolution methods \citep{gepa2025, play2prompt2025} have shown that iterative refinement of natural-language specifications can improve LLM performance without weight updates.
 However, these techniques have not been applied to large-scale skill libraries, particularly in the medical domain where description precision directly affects patient safety.
 
-\medskille addresses these gaps through an \textbf{evaluate--diagnose--evolve} closed loop that treats skill descriptions as first-class, evolvable agent interfaces rather than frozen documentation.
+\medskille addresses these gaps through an \textbf{evaluate--diagnose--evolve} closed loop that treats skill descriptions as first-class, evolvable agent interfaces rather than frozen documentation.\footnote{Code, data, and evolved skill descriptions are available at \anonrepo.}
+
+\begin{figure}[t]
+\figbox{5.2cm}{Figure 1 (Teaser): the \rbu gap. Left panel---agents read \skillmd at 96.2\% invocation. Right panel---only 74.3\% complete the specified task. The 22-pp wedge between the two represents specification grounding failure that \gepamed iteratively closes.}
+\caption{The \rbu gap: agents read skill specifications (96.2\%) yet only complete skill-grounded tasks at 74.3\%, exposing a 22-percentage-point specification grounding failure that \gepamed targets via reflective description evolution.}
+\label{fig:teaser}
+\end{figure}
 
 \paragraph{Contribution 1: \medskillbench.}
 We introduce the first large-scale skill-level execution benchmark for medical AI agents.
