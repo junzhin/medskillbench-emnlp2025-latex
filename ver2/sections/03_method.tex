@@ -1,0 +1,350 @@
+% !TEX root = ../main.tex
+%% Section 3 — Method
+
+\section{Method}
+\label{sec:method}
+
+We formalize the skill-grounded execution problem before describing the benchmark design and the skill-augmented evaluation protocol.
+
+%% ============================================================
+%% 3.0 Problem Formulation
+%% ============================================================
+
+\subsection{Problem Formulation}
+\label{subsec:problem}
+
+\begin{definition}[Skill Specification]
+\label{def:skill}
+A \emph{skill specification} is a tuple $s = (\texttt{desc}, \texttt{params}, \texttt{iface}, \texttt{dom})$ where:
+$\texttt{desc} \in \Sigma^*$ is a natural-language description document (the \skillmd content);
+$\texttt{params} = \{(p_j, T_j, C_j)\}_{j=1}^{m}$ is a parameter schema with type $T_j$ and constraint set $C_j$;
+$\texttt{iface} \in \mathcal{I} = \{\texttt{cli}, \texttt{python}, \texttt{R}, \texttt{mixed}, \texttt{none}\}$ is the tool interface type;
+and $\texttt{dom} \in \mathcal{D}$ is the medical domain label from a fixed taxonomy~$\mathcal{D}$.
+We write $\mathcal{S}$ for the full skill catalog and $\mathcal{S}_A \subseteq \mathcal{S}$ for the Tier-A subset surviving quality filtering.
+\end{definition}
+
+\begin{definition}[Agent Execution]
+\label{def:agent}
+An \emph{agent} $\mathcal{M}$ is a stochastic function that, given a task description $x \in \mathcal{X}$ and a skill specification $s \in \mathcal{S}$, samples a bounded execution trajectory:
+\begin{equation}
+    \tau \sim \mathcal{M}(x, s), \quad \tau = (a_1, o_1, \ldots, a_T, o_T), \quad T \leq T_{\max},
+    \label{eq:trajectory}
+\end{equation}
+where $a_t \in \mathcal{A}$ is an agent action (tool call, code execution, reasoning step, file read) and $o_t \in \mathcal{O}$ is the environment observation returned after~$a_t$. The trajectory is bounded by $T_{\max} = 40$ iterations and a wall-clock timeout $\Delta t_{\max} = 300\text{s}$.
+\end{definition}
+
+\paragraph{Remark (Deterministic Approximation).}
+In practice, all experiments use temperature~0 (greedy decoding), making $\mathcal{M}$ effectively deterministic for a given $(x, s)$.
+We retain the stochastic formulation for generality, but all reported metrics are point estimates from single runs.
+
+\begin{definition}[Evaluation Function]
+\label{def:eval}
+The \emph{evaluation function}~$E$ maps a (trajectory, skill, task) triple to an eight-dimensional binary quality vector:
+\begin{equation}
+    E: (\mathcal{A} \times \mathcal{O})^{\leq T_{\max}} \times \mathcal{S} \times \mathcal{X} \;\longrightarrow\; \{0,1\}^8, \quad E(\tau, s, x) = \vy.
+    \label{eq:eval_fn}
+\end{equation}
+The eight dimensions are partitioned into \textbf{core fidelity} $\vy^{\text{core}} = (y_1, y_2, y_3)$ and \textbf{auxiliary quality} $\vy^{\text{aux}} = (y_4, \ldots, y_8)$:
+\end{definition}
+
+\begin{center}
+\small
+\begin{tabular}{@{}cll@{}}
+\toprule
+Index & Dimension & Interpretation \\
+\midrule
+$y_1$ & \texttt{skill\_invoked} & Agent reads/references the specification \\
+$y_2$ & \texttt{skill\_used\_correctly} & Actions conform to specification semantics \\
+$y_3$ & \texttt{task\_completion} & Final output satisfies the task objective \\
+$y_4$ & \texttt{tool\_execution\_success} & $\geq 1$ tool call returns verified output \\
+$y_5$ & \texttt{output\_quality} & Domain-appropriate quality of final output \\
+$y_6$ & \texttt{reasoning\_quality} & Coherent, non-circular reasoning chain \\
+$y_7$ & \texttt{efficiency} & Reasonable iteration count, no retry loops \\
+$y_8$ & \texttt{trajectory\_quality} & Purposeful progression and error recovery \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\paragraph{Remark (Soft Dependency Structure).}
+The core dimensions encode a \emph{soft} dependency tendency: correct usage ($y_2{=}1$) typically presupposes invocation ($y_1{=}1$), and task completion ($y_3{=}1$) typically presupposes correct usage ($y_2{=}1$).
+However, this is not a strict logical entailment.
+Empirically, $\bar{y}_3 > \bar{y}_2$ is possible (and observed: $\bar{y}_3 = 0.743 > \bar{y}_2 = 0.720$ in \Cref{tab:main_results}), because an agent can complete a task via parametric knowledge even when it fails to follow the skill specification correctly.
+This is precisely the phenomenon \medskillbench is designed to detect: successful task completion that bypasses the skill specification should not be counted as successful skill grounding.
+
+The benchmark design is detailed in \Cref{subsec:bench}.
+
+%% ============================================================
+%% 3.1 Med-SkillBench
+%% ============================================================
+
+\subsection{\medskillbench: Skill-Level Execution Benchmark}
+\label{subsec:bench}
+
+Existing medical agent benchmarks evaluate end-to-end task completion \citep{healthbench2025,medagentbench2025} or library-level tool retrieval \citep{skillsbench2026,skillnet2026}, but neither setup isolates the contribution of an individual skill's \emph{description quality} to execution success.
+\medskillbench fills this gap with four design requirements:
+(1)~skill-level isolation---each skill is evaluated independently;
+(2)~execution fidelity---scores reflect real tool invocation in a sandboxed agent loop;
+(3)~failure attribution---the scoring scheme distinguishes where in the execution chain a failure occurs;
+(4)~reusability---the same protocol can be applied to different description variants or across models.
+
+\paragraph{Skill Collection and Quality Filtering.}
+We harvest skills from three open-source medical skill repositories covering genomics, proteomics, single-cell analysis, chemoinformatics, bioinformatics, clinical decision support, and medical research tooling.
+De-duplication yields \textbf{1,462} unique skills, each defined by a \skillmd specifying name, description, parameter schema, and optionally usage examples and safety notes.
+Before agent execution, a five-dimensional binary static pre-scan checks:
+(i)~\texttt{can\_get\_credentials},
+(ii)~\texttt{content\_complete},
+(iii)~\texttt{dependencies\_resolvable},
+(iv)~\texttt{has\_clear\_io},
+(v)~\texttt{has\_documentation}.
+The surviving \textbf{917 Tier-A skills} form the evaluation set.
+
+\paragraph{Isolated Evaluation Protocol.}
+Each skill is evaluated inside an independent temporary workspace containing only the skill's own artifacts.
+No other skills, shared registries, or caches are present.
+The agent operates within a bounded AgentLoop of at most 40 iterations with a 300-second wall-clock timeout.
+To ensure the agent reads the description before acting, we prepend a \emph{mandatory read-first} instruction to every prompt, making the \texttt{skill\_invoked} dimension an interpretable signal: $y_1=0$ means the agent ignored the description even when directed to read it.
+
+\paragraph{Task Construction.}
+For each skill we generate a diagnostic synthetic task matching the skill's declared purpose.
+Tasks require actual tool execution rather than planning, with concrete completion criteria.
+A separate LLM generates each task, enforcing \textbf{role separation}: task generator, executor, and judge are distinct model calls.
+
+\paragraph{Eight-Dimensional Binary Scoring.}
+Each evaluation produces a vector $\vy = (y_1, \ldots, y_8) \in \{0,1\}^8$ as defined in \Cref{def:eval}.
+We define three outcome tiers:
+\begin{align}
+    \textsc{Pass}(s) &= \mathbf{1}\bigl[y_1{=}1 \;\wedge\; y_2{=}1 \;\wedge\; y_3{=}1\bigr], \label{eq:pass} \\
+    \textsc{Gold}(s) &= \mathbf{1}\!\left[\textstyle\sum_{i=1}^{8} y_i = 8\right], \label{eq:gold} \\
+    \textsc{Silver}(s) &= \textsc{Pass}(s) \cdot \bigl(1 - \textsc{Gold}(s)\bigr). \label{eq:silver}
+\end{align}
+\textsc{Gold} requires full execution quality across all dimensions.
+\textsc{Silver} indicates core fidelity without full auxiliary quality---the skill was correctly invoked and the task completed, but execution artifacts (tool failures, inefficiency, trajectory issues) remain.
+Denoting the sets of skills achieving each tier as $\mathbb{G}$, $\mathbb{S}$, and $\mathbb{F}$ (core-failure), we have $\mathbb{G} \subset \mathbb{P}$, $\mathbb{S} \subset \mathbb{P}$, $\mathbb{G} \cap \mathbb{S} = \varnothing$, and the \emph{disjoint} partition $\mathbb{P} = \mathbb{G} \sqcup \mathbb{S} \sqcup \mathbb{F}$.
+Binary dimensions yield unambiguous pass/fail decisions, avoiding calibration difficulties of Likert-scale scoring across heterogeneous medical domains.
+
+\paragraph{The Read-But-Not-Use Gap.}
+We formalize the gap between invocation and completion.
+The \emph{aggregate \rbu gap} is:
+\begin{equation}
+    \Delta_{\textsc{RBU}}(\mathcal{S}, \mathcal{M}) = \bar{y}_1 - \bar{y}_3, \quad
+    \bar{y}_k = \tfrac{1}{|\mathcal{S}|}\textstyle\sum_{s \in \mathcal{S}} y_k^{(s)}.
+    \label{eq:rbu}
+\end{equation}
+
+\begin{proposition}[Two-Stage Decomposition of the \rbu Gap]
+\label{prop:decomp}
+The \rbu gap decomposes additively into two mechanistically distinct failure stages:
+\begin{equation}
+    \Delta_{\textsc{RBU}} = \underbrace{(\bar{y}_1 - \bar{y}_2)}_{\delta_{\emph{sem}}} + \underbrace{(\bar{y}_2 - \bar{y}_3)}_{\delta_{\emph{exec}}},
+    \label{eq:decomp}
+\end{equation}
+where $\delta_{\emph{sem}} = \bar{y}_1 - \bar{y}_2$ is the \textbf{semantic grounding gap} (specification comprehension$\to$action fidelity) and $\delta_{\emph{exec}} = \bar{y}_2 - \bar{y}_3$ is the \textbf{execution completion gap} (action$\to$outcome fidelity).
+\end{proposition}
+\begin{proof}
+Telescoping: $\bar{y}_1 - \bar{y}_3 = (\bar{y}_1 - \bar{y}_2) + (\bar{y}_2 - \bar{y}_3)$.
+\end{proof}
+
+\paragraph{Remark (Sign Interpretation).}
+Both $\delta_{\text{sem}}$ and $\delta_{\text{exec}}$ can take negative values.
+In the overall corpus, $\delta_{\text{exec}} = 0.720 - 0.743 = -0.023 < 0$, meaning task completion slightly \emph{exceeds} correct skill usage.
+This arises when agents complete tasks by falling back to parametric knowledge rather than following the skill---they ``pass the exam without reading the textbook.''
+Far from being a pathology, negative $\delta_{\text{exec}}$ is a key diagnostic signal: it indicates the task is solvable without the skill, which is important context for interpreting downstream uplift.
+The semantic grounding gap $\delta_{\text{sem}} = 0.962 - 0.720 = 0.242$ accounts for more than 100\% of the aggregate \rbu gap, confirming that the dominant bottleneck is specification-to-action translation.
+
+\paragraph{Remark (Diagnostic Utility).}
+Consider two skill categories with identical $\Delta_{\textsc{RBU}} = 0.22$: \textbf{Category~A} (guide-style) has $\delta_{\text{sem}} = 0.18$, $\delta_{\text{exec}} = 0.04$---the bottleneck is specification comprehension.
+\textbf{Category~B} (tool-based) has $\delta_{\text{sem}} = 0.04$, $\delta_{\text{exec}} = 0.18$---the bottleneck is execution.
+The aggregate $\Delta_{\textsc{RBU}}$ cannot distinguish these; the decomposition can, and it directly prescribes different interventions (improve descriptions vs.\ improve tool environments).
+
+For interface type $\iota \in \mathcal{I}$, let $\mathcal{S}_\iota = \{s \in \mathcal{S} : s.\texttt{iface} = \iota\}$.
+The \emph{interface-conditioned} \rbu gap and its decomposition are:
+\begin{equation}
+    \Delta_{\textsc{RBU}}^{(\iota)} = \bar{y}_1^{(\iota)} - \bar{y}_3^{(\iota)} = \delta_{\text{sem}}^{(\iota)} + \delta_{\text{exec}}^{(\iota)},
+    \label{eq:conditioned_rbu}
+\end{equation}
+where all means are taken over $\mathcal{S}_\iota$.
+
+\paragraph{Hypothesis 1 (Interface Grounding).}
+\emph{Structured tool interfaces reduce the \rbu gap primarily by shrinking the semantic grounding component:}
+\begin{equation}
+    \delta_{\text{sem}}^{(\texttt{none})} \;\gg\; \delta_{\text{sem}}^{(\iota)}, \quad \forall\, \iota \in \{\texttt{cli}, \texttt{python}, \texttt{R}, \texttt{mixed}\}.
+    \label{eq:interface_hyp}
+\end{equation}
+When a skill specifies a concrete invocation template (e.g., \texttt{blastp -query input.fasta -db nr}), the mapping from description to action is near-deterministic.
+Guide-style skills require the agent to synthesize multi-step action plans from unconstrained prose, introducing a combinatorially larger space of possible (mis)interpretations.
+
+\paragraph{Specification Groundability Index.}
+Beyond the aggregate \rbu gap, we introduce a per-skill \emph{Specification Groundability Index} (\textsc{SGI}) that captures the full execution quality profile:
+\begin{equation}
+    \textsc{SGI}(s, \mathcal{M}) = \underbrace{w_c \cdot \tfrac{1}{3}\textstyle\sum_{i=1}^{3} y_i}_{\text{core fidelity } F_c(s)} \;+\; \underbrace{(1{-}w_c) \cdot \tfrac{1}{5}\textstyle\sum_{i=4}^{8} y_i}_{\text{auxiliary quality } Q_a(s)},
+    \label{eq:sgi}
+\end{equation}
+where $w_c \in (0,1)$ controls the emphasis on core fidelity relative to auxiliary quality.
+We set $w_c$ based on a \textbf{dominance principle}: a skill that fails on any core dimension is clinically unusable regardless of auxiliary quality, so core fidelity must dominate.
+Formally, we require that the \emph{worst-case} core-failing skill always scores below the \emph{worst-case} core-passing skill:
+\begin{equation}
+    \max_{\vy:\, F_c < 1} \textsc{SGI}(\vy) \;<\; \min_{\vy:\, F_c = 1} \textsc{SGI}(\vy).
+    \label{eq:dominance}
+\end{equation}
+The left maximum is achieved by a skill with $F_c = 2/3$ and $Q_a = 1$ (one core failure, all auxiliary pass); the right minimum by $F_c = 1$ and $Q_a = 0$ (all core pass, all auxiliary fail):
+\begin{equation}
+    \underbrace{w_c \cdot \tfrac{2}{3} + (1{-}w_c) \cdot 1}_{= 1 - w_c/3} \;<\; \underbrace{w_c \cdot 1 + (1{-}w_c) \cdot 0}_{= w_c} \;\;\implies\;\; w_c > \tfrac{3}{4} = 0.75.
+    \label{eq:wc_derivation}
+\end{equation}
+We set $w_c = 0.75$, the tightest value satisfying strict dominance---the \emph{least opinionated} choice guaranteeing that any core-failing skill always ranks below any core-passing skill.
+We verify robustness to $w_c \in \{0.6, 0.7, 0.75, 0.8\}$ in sensitivity analysis (Appendix~G).
+
+\begin{proposition}[\textsc{SGI} Decomposition by Domain]
+\label{prop:sgi_domain}
+For domain $d \in \mathcal{D}$, the mean \textsc{SGI} decomposes as:
+\begin{equation}
+    \overline{\textsc{SGI}}_d = w_c \cdot \bar{F}_{c,d} + (1 - w_c) \cdot \bar{Q}_{a,d}.
+    \label{eq:sgi_domain}
+\end{equation}
+\end{proposition}
+\noindent This decomposition exposes cross-domain quality patterns: computational domains (bioinformatics) are predicted to show $\bar{F}_{c,d} > \bar{Q}_{a,d}$ (high core fidelity, tool execution failures drag down auxiliary), while clinical reasoning domains show $\bar{Q}_{a,d} > \bar{F}_{c,d}$ (high reasoning quality, but weaker specification adherence).
+This enables \emph{domain-aware} skill quality diagnosis.
+
+\paragraph{Medical Domain Taxonomy.}
+Medical skills differ fundamentally from generic tool descriptions in three respects.
+First, they encode \emph{domain-specific safety boundaries}---a drug interaction checker must not silently drop contraindications; a variant annotation pipeline must preserve clinical significance flags.
+Second, medical skills span a \emph{reasoning--execution duality}: 64.2\% of Tier-A skills are guide-style (clinical reasoning, evidence synthesis, study design) with no executable tool interface, while 35.8\% invoke computational tools (BLAST, RDKit, samtools).
+Both modes are clinically legitimate, but they require fundamentally different evaluation: tool-based skills are assessed on execution fidelity, while reasoning-based skills are assessed on semantic correctness.
+Third, medical skills exhibit a \emph{heterogeneous domain distribution}: the 917 Tier-A skills span eight medical domains---bioinformatics (48.5\%), clinical medicine (8.8\%), biomedical research (6.0\%), drug discovery (3.8\%), public health (3.1\%), structural biology (2.8\%), medical imaging (2.0\%), and cross-cutting research support (25.0\%).
+This imbalance reflects the real-world landscape of open-source medical agent tools and motivates domain-stratified evaluation.
+
+\begin{figure*}[!t]
+\schematicbox{6.2cm}{Figure 2: \medskillbench evaluation pipeline. Three source repositories $\to$ catalog construction $\to$ static quality filtering $\to$ Tier-A subset $\to$ isolated AgentLoop execution $\to$ 8-dimensional binary scoring.}
+\caption{Overview of the \medskillbench evaluation pipeline, spanning catalog construction, static quality filtering, isolated agent execution, and 8-dimensional binary scoring.}
+\label{fig:pipeline}
+\end{figure*}
+
+\begin{figure}[t]
+\chartbox{5.0cm}{Figure 3: Domain distribution of 917 Tier-A skills. Bioinformatics dominates (48.5\%), followed by cross-cutting research support (25.0\%), clinical medicine (8.8\%), and five specialized domains. Pie or bar chart with reasoning vs.\ execution breakdown overlay.}
+\caption{Medical domain distribution of the \medskillbench skill catalog. The heterogeneous distribution reflects the real-world landscape of open-source medical agent tools.}
+\label{fig:domain_dist}
+\end{figure}
+
+\begin{algorithm}[t]
+\caption{\medskillbench Evaluation Pipeline}
+\label{alg:eval_pipeline}
+\begin{algorithmic}[1]
+\Require skill catalog $\mathcal{S}$, task generator $\mathcal{G}$, executor model $M$, judge model $J$
+\Ensure per-skill score vectors $\{(\vy_s, \text{status}_s)\}_{s \in \mathcal{S}}$
+\For{each skill $s \in \mathcal{S}$}
+    \State $x \gets \mathcal{G}(s)$ \Comment{Generate diagnostic task from \skillmd}
+    \State Create isolated workspace with only $s$'s artifacts
+    \State Inject mandatory read-first prompt into agent system message
+    \State $\tau \gets \textsc{AgentLoop}(M,\, s,\, x)$ \Comment{$\le$40 iter, 300\,s timeout}
+    \State $\vy_s \gets J(\tau,\, s,\, x) \in \{0,1\}^8$ \Comment{8-dim binary scoring}
+    \State $\text{status}_s \gets \begin{cases} \textsc{Gold} & \text{if } \sum y_i = 8 \\ \textsc{Pass} & \text{if } y_1 \wedge y_2 \wedge y_3 \\ \textsc{Fail} & \text{otherwise} \end{cases}$
+\EndFor
+\State \Return $\{(\vy_s, \text{status}_s)\}_{s \in \mathcal{S}}$
+\end{algorithmic}
+\end{algorithm}
+
+%% ============================================================
+%% 3.2 Skill-Augmented Evaluation
+%% ============================================================
+
+\subsection{Skill-Augmented QA Evaluation Protocol}
+\label{subsec:ablation_protocol}
+
+The benchmark evaluation (\Cref{subsec:bench}) assesses whether agents can execute skill specifications in isolation.
+A complementary question is whether skill availability actually \emph{improves} model performance on real medical questions.
+We address this through a controlled with/without-skill ablation.
+
+\paragraph{Task Selection.}
+We link the 917 Tier-A skills to 14,019 questions from 12 established medical QA benchmarks via a three-round matching pipeline:
+(1)~batched LLM matching identifies candidate skill--question pairs;
+(2)~multi-dimensional validation filters for relevance, execution feasibility, and domain alignment;
+(3)~final scoring merges static quality and fitness signals.
+Let $\mu: \mathcal{Q} \to 2^{\mathcal{S}}$ be the resulting skill-matching function, assigning each question to a (possibly empty) set of relevant skills.
+We expand to \emph{skill--question pairs}:
+\[
+    \mathcal{P}_\mu = \{(x_i, s, g_i) : s \in \mu(x_i),\; \mu(x_i) \neq \varnothing\}.
+\]
+The surviving validated pairs form the ablation evaluation set.
+\todo{Report exact number of validated pairs after R2/R3 completion.}
+
+\paragraph{Dual-Mode Execution.}
+Each validated pair $(x_i, s, g_i) \in \mathcal{P}_\mu$ is evaluated under two conditions using the same executor model and identical hyperparameters:
+\begin{itemize}[nosep,leftmargin=*]
+  \item \textbf{With-Skill}: The agent's workspace contains the matched \skillmd file alongside the question. The mandatory read-first prompt directs the agent to consult the skill specification.
+  \item \textbf{Without-Skill}: The agent receives only the question in an empty workspace, relying entirely on parametric knowledge.
+\end{itemize}
+Both conditions use the same bounded AgentLoop (40 iterations, 300-second timeout) to ensure comparability.
+Define accuracy under the with-skill condition over the pair set:
+\begin{equation}
+    \text{Acc}_{\text{with}}(\mathcal{P}_\mu, \mathcal{M}) = \frac{1}{|\mathcal{P}_\mu|}\sum_{(x_i, s, g_i) \in \mathcal{P}_\mu} \mathbf{1}\!\left[\mathcal{M}(x_i, s) = g_i\right],
+    \label{eq:acc_with}
+\end{equation}
+and accuracy under the without-skill baseline:
+\begin{equation}
+    \text{Acc}_{\text{w/o}}(\mathcal{P}_\mu, \mathcal{M}) = \frac{1}{|\mathcal{P}_\mu|}\sum_{(x_i, s, g_i) \in \mathcal{P}_\mu} \mathbf{1}\!\left[\mathcal{M}(x_i, \varnothing) = g_i\right].
+    \label{eq:acc_wo}
+\end{equation}
+When $|\mu(x_i)| > 1$, the same question $x_i$ appears in multiple pairs; the without-skill prediction $\mathcal{M}(x_i, \varnothing)$ is computed once and reused across all pairs sharing the same $x_i$.
+
+\paragraph{Answer Evaluation.}
+For multiple-choice questions, we apply exact option matching.
+For open-ended and numeric questions, an LLM-as-judge determines correctness against the gold answer, maintaining role separation from the executor model.
+Each trial produces a binary \emph{correct} label.
+
+\paragraph{Uplift Metric.}
+We define the skill uplift as the paired accuracy difference:
+\begin{equation}
+    \Delta_{\text{uplift}}(\mathcal{P}_\mu, \mathcal{M}) = \text{Acc}_{\text{with}} - \text{Acc}_{\text{w/o}}.
+    \label{eq:uplift}
+\end{equation}
+A positive $\Delta_{\text{uplift}}$ indicates that skill availability improves performance.
+For each pair $(x_i, s, g_i) \in \mathcal{P}_\mu$, define the \emph{per-pair uplift indicator}:
+\begin{equation}
+    u_{i,s} = \mathbf{1}[\mathcal{M}(x_i, s) = g_i] - \mathbf{1}[\mathcal{M}(x_i, \varnothing) = g_i] \;\in\; \{-1, 0, +1\}.
+    \label{eq:per_pair}
+\end{equation}
+Then $\Delta_{\text{uplift}} = \bar{u}$.
+The \emph{net benefit ratio} $\rho = n_{+1}/(n_{+1} + n_{-1})$ indicates whether skills help more pairs than they hurt ($\rho > 0.5$).
+
+\paragraph{Connecting Diagnostics to Utility.}
+The preceding sections establish two independent measurement instruments: the \rbu gap with its \textsc{SGI} decomposition (Step~0, \Cref{subsec:bench}), and the with/without-skill ablation (Step~2, this section).
+We now connect them.
+
+Partition matched pairs by interface type: $\mathcal{P}_\mu^{(\iota)} = \{(x_i, s, g_i) \in \mathcal{P}_\mu : s.\texttt{iface} = \iota\}$.
+The \emph{interface-conditioned uplift} is:
+\begin{equation}
+    \Delta_{\text{uplift}}^{(\iota)} = \text{Acc}_{\text{with}}^{(\iota)} - \text{Acc}_{\text{w/o}}^{(\iota)}, \quad \iota \in \mathcal{I}.
+    \label{eq:cond_uplift}
+\end{equation}
+
+\begin{proposition}[Groundability-Modulated Uplift]
+\label{prop:groundability}
+If the \rbu gap reflects genuine specification grounding failure, then interface types with \emph{smaller} \rbu gaps should exhibit \emph{larger} uplift:
+\begin{equation}
+    \Delta_{\textsc{RBU}}^{(\iota_1)} < \Delta_{\textsc{RBU}}^{(\iota_2)} \;\implies\; \Delta_{\emph{uplift}}^{(\iota_1)} \geq \Delta_{\emph{uplift}}^{(\iota_2)}.
+    \label{eq:uplift_prediction}
+\end{equation}
+\end{proposition}
+\noindent We test this prediction in two ways.
+First, the aggregate \emph{groundability--uplift correlation}:
+\[
+    r_{GU} = \text{Corr}\!\left(\{-\Delta_{\textsc{RBU}}^{(\iota)}\}_{\iota \in \mathcal{I}},\; \{\Delta_{\text{uplift}}^{(\iota)}\}_{\iota \in \mathcal{I}}\right).
+\]
+A positive $r_{GU}$ validates the ``closing the loop'' claim.
+However, with $|\mathcal{I}| = 5$ interface types, this correlation has negligible statistical power ($n = 5$ requires $|r| > 0.878$ for $p < 0.05$).
+We therefore adopt the following \textbf{primary test}: for each skill $s$ with at least $k \geq 5$ matched QA pairs, regress per-skill uplift on \textsc{SGI}:
+\begin{equation}
+    \Delta_{\text{uplift}}^{(s)} = \beta_0 + \beta_1 \cdot \textsc{SGI}(s) + \epsilon_s.
+    \label{eq:per_skill_reg}
+\end{equation}
+A significantly positive $\hat{\beta}_1$ provides a higher-powered test of the same hypothesis, using individual skills as the unit of analysis.
+We report both $r_{GU}$ and $\hat{\beta}_1$; the latter is the primary test.
+
+\paragraph{Statistical Testing.}
+Because each question is evaluated under both conditions by the same model, we use McNemar's paired test for binary outcomes, supplemented by bootstrap 95\% confidence intervals (10,000 resamples, clustered by question index to handle within-question dependence when $|\mu(x_i)| > 1$).
+Full formalization of the McNemar statistic and bootstrap procedure is provided in \Cref{app:statistical_details}.
+We stratify results by benchmark, \texttt{tool\_type}, and medical domain to identify where skill augmentation provides the largest benefit.
+
+%% ============================================================
+
+All evaluation transcripts, scores, and skill--benchmark matching tables are released as a frozen v2 snapshot.\footnote{Anonymous access: \anonrepo; camera-ready will include a permanent DOI.}

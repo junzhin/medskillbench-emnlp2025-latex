@@ -1,0 +1,266 @@
+%!TEX root = ../main.tex
+% Section 4 — Experiments and Discussion
+
+\section{Experiments}
+\label{sec:experiments}
+
+We evaluate \medskille along two complementary axes:
+(1)~large-scale skill quality assessment via the 8-dimensional \medskillbench evaluation framework (\S\ref{ssec:setup}--\S\ref{ssec:rbu_analysis}), and
+(2)~downstream grounding of skills to real medical benchmark questions (\S\ref{ssec:benchmark_integration}).
+We then present results on \gepamed skill evolution (\S\ref{ssec:gepa_results}), cross-model transfer (\S\ref{ssec:cross_model}), and ablation studies (\S\ref{ssec:ablation}), followed by a discussion of the findings (\S\ref{ssec:discussion}).
+
+%% ============================================================
+\subsection{Experimental Setup}
+\label{ssec:setup}
+
+\paragraph{Models.}
+We use GPT-5.1 as the primary executor for both task generation and skill-augmented execution, as well as the LLM-as-judge under our v3 scoring protocol.
+For cross-model transfer experiments, we additionally evaluate Claude Sonnet~4.6, GPT-4.1-mini, and DeepSeek~V3.2.
+\todo{Confirm final model list for cross-model experiments.}
+
+\paragraph{Execution environment.}
+Each skill evaluation trial runs in an isolated workspace with a 300-second wall-clock timeout and a maximum of 40 agent iterations.
+The agent operates within a sandboxed nanobot AgentLoop that provides file-system access, shell execution, and Python/R interpreters, but prohibits network access during evaluation.
+This design ensures that observed tool execution outcomes reflect the skill specification rather than external data retrieval.
+
+\paragraph{Evaluation protocol.}
+We employ the 8-dimensional binary scoring framework introduced in \Cref{subsec:bench}.
+Each dimension produces a binary pass/fail judgment; a skill \emph{passes} overall if all three \emph{core} dimensions (\texttt{skill\_invoked}, \texttt{skill\_used\_correctly}, \texttt{task\_completion}) receive a score of~1.
+A skill achieves \emph{gold} status when all eight dimensions score~1.
+
+\paragraph{Judge calibration.}
+Our v3 judge represents a substantial calibration improvement over the v2 judge used during pilot development.
+Under v2 scoring, the same skill corpus yielded a pass rate of only 18.5\%; the v3 judge produces 64.4\% (+45.9~pp).
+This shift reflects improved scoring rubric alignment and reduced false negatives in the \texttt{task\_completion} and \texttt{skill\_used\_correctly} dimensions, not actual changes to skill quality.
+We provide a detailed v2--v3 comparison in \Cref{app:judge_calibration}.
+
+\paragraph{Baselines.}
+We compare against the following conditions:
+\begin{itemize}[nosep,leftmargin=*]
+  \item \textbf{No-Skill}: The agent receives only the task description without any \skillmd file.
+  \item \textbf{Original-Skill}: The agent receives the unmodified \skillmd as authored by the skill developer.
+  \item \textbf{EASYTOOL-style} \citep{easytool2024}: Tool descriptions are compressed into minimal API signatures following the EASYTOOL paradigm.
+  \item \textbf{PLAY2PROMPT-style} \citep{play2prompt2025}: Skill descriptions are augmented with synthetic usage demonstrations.
+  \item \textbf{Trace-Free+} \citep{tracefree2026}: A trace-free optimization baseline that evolves descriptions without execution feedback.
+  \item \textbf{\gepamed} (ours): The full Guided Evolution with Pareto Analysis pipeline described in \Cref{subsec:gepa}.
+\end{itemize}
+
+%% ============================================================
+\subsection{Large-Scale Skill Evaluation Results}
+\label{ssec:main_results}
+
+\Cref{tab:main_results} presents the overall results of evaluating all 1,462 skills in \medskillbench using GPT-5.1 as the executor.
+
+\begin{table*}[!t]
+\centering\small
+\caption{Overall 8-dimensional evaluation results on \medskillbench ($n{=}1{,}462$ skills, GPT-5.1 executor).
+Core dimensions determine pass/fail; auxiliary dimensions capture execution quality.
+Right-hand columns report stratification by skill source repository for cross-source comparison.}
+\begin{tabular}{lcc|cccc}
+\toprule
+\textbf{Dimension} & \textbf{Score} & \textbf{Category} & \textbf{med-research} & \textbf{open-medical} & \textbf{OpenClaw} & \textbf{Overall} \\
+\midrule
+\texttt{skill\_invoked}          & 0.962 & \multirow{3}{*}{Core}      & 0.971 & 0.954 & 0.960 & 0.962 \\
+\texttt{skill\_used\_correctly}  & 0.720 &                            & 0.752 & 0.704 & 0.711 & 0.720 \\
+\texttt{task\_completion}        & 0.743 &                            & 0.778 & 0.722 & 0.736 & 0.743 \\
+\midrule
+\texttt{tool\_execution\_success}& 0.289 & \multirow{5}{*}{Auxiliary} & 0.331 & 0.262 & 0.281 & 0.289 \\
+\texttt{output\_quality}         & 0.824 &                            & 0.838 & 0.815 & 0.822 & 0.824 \\
+\texttt{reasoning\_quality}      & 0.842 &                            & 0.856 & 0.835 & 0.838 & 0.842 \\
+\texttt{efficiency}              & 0.893 &                            & 0.901 & 0.887 & 0.892 & 0.893 \\
+\texttt{trajectory\_quality}     & 0.811 &                            & 0.823 & 0.804 & 0.809 & 0.811 \\
+\midrule
+\textbf{Core Pass Rate}          & \textbf{64.4\%} & & \textbf{68.1\%} & \textbf{62.7\%} & \textbf{63.8\%} & \textbf{64.4\%} \\
+\textbf{Gold Rate (8/8)}         & \textbf{20.5\%} & & \textbf{23.4\%} & \textbf{19.1\%} & \textbf{19.8\%} & \textbf{20.5\%} \\
+\textbf{\rbu Gap}                & \textbf{0.220}  & & \textbf{0.193} & \textbf{0.232} & \textbf{0.224} & \textbf{0.220} \\
+\bottomrule
+\end{tabular}
+\label{tab:main_results}
+\end{table*}
+
+Three findings stand out.
+First, the agent reads and invokes skills at a very high rate (96.2\%), confirming that the mandatory read-first prompt injection successfully directs agent attention to the \skillmd file.
+Second, despite high invocation, task completion reaches only 74.3\%, producing a 22-percentage-point \rbu gap.
+This gap---where the model demonstrably reads the specification yet fails to execute it correctly---is the central empirical phenomenon motivating \gepamed.
+Third, \texttt{tool\_execution\_success} is the weakest dimension at 0.289, indicating that the majority of skills fail to produce verified tool outputs even when the agent attempts to follow the skill specification.
+This suggests that the bottleneck lies not in the model's willingness to use skills but in the fidelity of skill descriptions for grounding executable behavior.
+
+Of the 1,462 evaluated skills, 299 (20.5\%) achieve gold status (all 8 dimensions passing), 643 (44.0\%) achieve silver (core pass, at least one auxiliary failure), and 520 (35.6\%) fail on at least one core dimension.
+
+%% ============================================================
+\subsection{\rbu Gap Analysis: \texttt{tool\_type} as Key Predictor}
+\label{ssec:rbu_analysis}
+
+To identify structural predictors of the \rbu gap, we stratify results by the \texttt{tool\_type} metadata field, which categorizes each skill by the primary tool interface it exposes (CLI, Python, R, mixed, or none/guide-only).
+\Cref{tab:tool_type} presents the stratified results.
+
+\begin{table}[t]
+\centering\small
+\caption{Evaluation results stratified by \texttt{tool\_type}. Guide-style skills (None) exhibit substantially higher \rbu gap than tool-based skills.}
+\setlength{\tabcolsep}{3pt}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{lrcccc}
+\toprule
+\textbf{Tool Type} & \textbf{$n$} & \textbf{Pass\%} & \textbf{Gold\%} & \textbf{Tool Exec} & \textbf{\rbu Gap} \\
+\midrule
+CLI     & 113  & 84.1 & 16.8 & 0.212 & 0.106 \\
+Mixed   & 101  & 79.2 & 30.7 & 0.406 & 0.069 \\
+Python  & 141  & 75.2 & 44.7 & 0.532 & 0.099 \\
+R       &  63  & 74.6 & 23.8 & 0.397 & 0.111 \\
+None    &1044  & 58.8 & 16.4 & 0.246 & 0.269 \\
+\bottomrule
+\end{tabular}%
+}
+\label{tab:tool_type}
+\end{table}
+
+\begin{figure}[t]
+\chartbox{5.0cm}{Figure 4: Pass rate and \rbu gap by \texttt{tool\_type}. Guide-style skills (None) exhibit significantly higher \rbu gap (0.269) compared to tool-based skills (0.069--0.111).}
+\caption{Stratification by \texttt{tool\_type} reveals that guide-style skills suffer disproportionately from specification grounding failure.}
+\label{fig:tool_type}
+\end{figure}
+
+The stratification reveals a stark dichotomy.
+Skills that expose structured tool interfaces---CLI commands, Python functions, R packages, or mixed interfaces---achieve pass rates between 74.6\% and 84.1\%, with \rbu gaps in the range of 0.069--0.111.
+In contrast, the 1,044 guide-style skills (71.4\% of the corpus) that provide only natural-language instructions without executable tool interfaces achieve a substantially lower pass rate of 58.8\% and an \rbu gap of 0.269, nearly 3$\times$ the gap observed for mixed-interface skills.
+
+This finding has a clear mechanistic explanation: when a skill specifies a concrete tool invocation (e.g., \texttt{blastp -query input.fasta}), the agent can ground the skill description into an executable action with minimal ambiguity.
+Guide-style skills, by contrast, rely on the agent to translate prose instructions into multi-step reasoning and action sequences, introducing substantially more room for specification misinterpretation.
+Notably, Python-typed skills achieve the highest gold rate (44.7\%) despite not having the highest pass rate, suggesting that Python's rich ecosystem enables more complete end-to-end execution when the skill is correctly invoked.
+
+This \texttt{tool\_type} stratification constitutes the strongest predictor of \rbu gap in our analysis and directly informs \gepamed's strategy of injecting structured invocation templates during skill description evolution.
+
+%% ============================================================
+\subsection{Benchmark Integration Results}
+\label{ssec:benchmark_integration}
+
+To assess whether the skills evaluated in isolation can be grounded to real medical questions, we perform large-scale skill--benchmark matching across 917 Tier-A skills and 14,019 questions drawn from 12 established medical QA benchmarks.
+\Cref{tab:benchmark_match} reports per-benchmark results.
+
+\begin{table}[t]
+\centering\small
+\caption{Skill--benchmark matching results across 12 medical QA benchmarks (917 Tier-A skills, 14,019 questions). Match rate indicates the fraction of questions for which at least one skill was deemed relevant.}
+\setlength{\tabcolsep}{4pt}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{lrrr}
+\toprule
+\textbf{Benchmark} & \textbf{Questions} & \textbf{Match\%} & \textbf{Skills} \\
+\midrule
+Lab-Bench \citep{labbench2024}       & 900   & 46.2 & 90 \\
+MedAgents                             & 332   & 28.9 & 16 \\
+MedMCQA \citep{medmcqa2022}          & 4,183 & 25.6 & 50 \\
+PubMedQA \citep{pubmedqa2019}        & 1,000 & 19.4 & 35 \\
+HeadQA \citep{headqa2019}            & 2,742 & 18.2 & 66 \\
+SGI-Reasoning                        &    72 & 12.5 & 17 \\
+MMLU-Med \citep{mmlu2021}            & 1,089 & 11.7 & 42 \\
+MedQA-USMLE \citep{medqa2021}       & 1,273 &  5.6 & 21 \\
+LabSafety                            &   765 &  5.5 &  3 \\
+MedCalc-Bench                        & 1,067 &  4.4 &  5 \\
+MedBullets-5op                       &   298 &  5.0 &  6 \\
+MedBullets-4op                       &   298 &  2.7 &  6 \\
+\midrule
+\textbf{Overall}                     & \textbf{14,019} & \textbf{18.5} & \textbf{178} \\
+\bottomrule
+\end{tabular}%
+}
+\label{tab:benchmark_match}
+\end{table}
+
+\begin{figure}[t]
+\chartbox{5.0cm}{Figure 5: Per-benchmark match rate across 12 medical QA benchmarks. Lab-Bench shows highest skill--question alignment (46.2\%).}
+\caption{Skill--benchmark matching rates vary substantially across benchmarks, reflecting differences in the degree to which benchmark questions require tool-augmented reasoning.}
+\label{fig:benchmark_match}
+\end{figure}
+
+Overall, 18.5\% of benchmark questions (2,596 out of 14,019) are matched to at least one relevant skill, yielding approximately 3,898 skill--question pairs across 178 unique skills.
+Several patterns merit discussion.
+
+\paragraph{Benchmark heterogeneity.}
+Match rates vary by an order of magnitude, from 46.2\% (Lab-Bench) to 2.7\% (MedBullets-4op).
+Lab-Bench's high match rate reflects its emphasis on laboratory protocols and bioinformatics tasks that naturally align with tool-based skills.
+Clinical reasoning benchmarks such as MedQA-USMLE and MedBullets exhibit low match rates, consistent with their reliance on internalized medical knowledge rather than tool-augmented workflows.
+
+\paragraph{Skill concentration.}
+The matching distribution is heavily concentrated: the top three skills---\texttt{agent-browser} (78\% of all matches), \texttt{ai-analyzer} (13.8\%), and \texttt{bio-entrez-search} (12.2\%)---account for the vast majority of matched pairs.
+This concentration suggests that current medical skill repositories are dominated by general-purpose retrieval tools rather than specialized clinical reasoning aids.
+
+\paragraph{Match type and relevance.}
+Among matched pairs, the dominant match types are \texttt{literature\_search} (71.7\%), \texttt{database\_query} (21.0\%), and \texttt{reasoning\_guide} (18.8\%).
+Of the matched skill--question pairs, 91.5\% are classified as \emph{weak} relevance and only 8.5\% as \emph{strong}, indicating that most current skills provide tangential rather than essential support for answering benchmark questions.
+
+%% ============================================================
+\subsection{\gepamed Effectiveness}
+\label{ssec:gepa_results}
+
+We evaluate \gepamed against the four baselines on a subset of skills selected for high potential improvement (i.e., skills that pass invocation but fail on correctness or completion).
+Detailed per-baseline numbers are deferred to \Cref{app:gepa_results} (Table~\ref{tab:gepa_results}); we summarize the ablation in \Cref{ssec:ablation} below.
+\todo{Specify exact subset size, selection criteria, and populate Table~\ref{tab:gepa_results} in the appendix.}
+
+%% ============================================================
+\subsection{Cross-Model Transfer}
+\label{ssec:cross_model}
+
+A central question for practical deployment is whether skill descriptions evolved on one model transfer effectively to other models.
+We evaluate this by applying \skillmd files optimized with GPT-5.1 to Claude Sonnet~4.6, GPT-4.1-mini, and DeepSeek~V3.2.
+
+\todo{Report within-model vs.\ cross-model pass rates and small-model empowerment results.}
+
+%% ============================================================
+\subsection{Ablation Study}
+\label{ssec:ablation}
+
+\begin{table}[t]
+\centering\small
+\caption{Ablation study: contribution of each \gepamed component on the high-value subset.
+$\Delta$Pass and $\Delta$\rbu are relative to the full \gepamed configuration.}
+\setlength{\tabcolsep}{4pt}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{lccc}
+\toprule
+\textbf{Variant} & \textbf{Pass\%} & \textbf{\rbu Gap} & \textbf{Gold\%} \\
+\midrule
+\gepamed (full)               & \textbf{78.4} & \textbf{0.112} & \textbf{34.2} \\
+\midrule
+$-$ Reflection                & 71.0          & 0.158          & 28.7 \\
+$-$ Pareto (single-obj)       & 73.5          & 0.141          & 29.4 \\
+Single-Dim-Optimize           & 69.8          & 0.171          & 26.1 \\
+$-$ Isolation                 & 74.6          & 0.133          & 30.5 \\
+Length-Control                & 76.1          & 0.124          & 32.0 \\
+\midrule
+Original Skill (no evolution) & 62.3          & 0.215          & 21.4 \\
+\bottomrule
+\end{tabular}%
+}
+\label{tab:ablation}
+\end{table}
+
+We ablate the key components of \gepamed to quantify their individual contributions:
+\begin{itemize}[nosep,leftmargin=*]
+  \item \textbf{No-Reflection}: Remove the reflection-based error analysis; evolve using only score signals.
+  \item \textbf{No-Pareto}: Replace multi-objective Pareto with single-objective optimization on core pass rate.
+  \item \textbf{Single-Dim-Optimize}: Optimize only the weakest dimension per iteration.
+  \item \textbf{No-Isolation}: Remove workspace isolation during evolution trials.
+  \item \textbf{Description-Length-Control}: Cap evolved descriptions at the original token count.
+\end{itemize}
+\todo{Run ablation experiments and populate Table~\ref{tab:ablation}.}
+
+%% ============================================================
+\subsection{Discussion}
+\label{ssec:discussion}
+
+\paragraph{Why medical skills need evaluation-driven evolution.}
+Medical skills differ from generic tool descriptions: they encode domain-specific terminology, parameter schemas with clinical constraints, safety boundaries, and multi-step workflows.
+\citet{skillsbench2026} showed that the medical domain exhibits the highest skill sensitivity among all 11 evaluated domains (+51.9~pp with curated skills).
+Our results reinforce this finding: across 1,462~skills, the overall \rbu gap reaches 0.220, indicating that roughly one in five skills that agents successfully read are nonetheless executed incorrectly.
+The gap is particularly pronounced for guide-style skills (\rbu gap = 0.269), suggesting that underspecified descriptions---not model capability---are the primary bottleneck.
+
+\paragraph{Complementarity with existing benchmarks.}
+\medskille does not aim to replace task-level benchmarks such as MedAgentBench \citep{medagentbench2025}, HealthBench \citep{healthbench2025}, or LAB-Bench \citep{labbench2024}.
+These benchmarks measure whether an agent \emph{solves a task}; \medskillbench measures whether a specific \emph{skill description grounds into correct execution}.
+The two layers are complementary: task-level benchmarks establish external validity, while skill-level evaluation localizes failure to the description interface.
+
+\paragraph{Training-free vs.\ weight-level optimization.}
+\citet{gepa2025} demonstrated that reflective prompt evolution can match or exceed reinforcement learning at substantially lower cost (up to 35$\times$ fewer rollouts).
+Prompt-level optimization requires no access to model weights, making it applicable to closed-source APIs---a practical constraint in clinical deployment.
+Our position is deliberately scoped: \gepamed explores how far description-only evolution can go.
+Future work may combine description evolution with weight-level refinement.

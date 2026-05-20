@@ -1,0 +1,20 @@
+% !TEX root = ../main.tex
+% NOTE: \section*{Ethical Considerations} is emitted by main.tex; this file starts directly with content.
+
+\noindent
+\textbf{No real patient data.}\quad
+All evaluations in this work are conducted on synthetic tasks or publicly available benchmarks.
+No protected health information, electronic health records, or real patient data were used at any stage of skill evaluation.
+
+\textbf{Sandboxed execution.}\quad
+Medical skills are evaluated in isolated sandbox environments with no connection to clinical systems.
+No skill execution produces outputs that could affect real patient care or clinical decision-making.
+
+\textbf{Non-clinical intent.}\quad
+The AI-generated evaluation scores are research artifacts.
+They are not intended for, and should not be used in, clinical decision-making without thorough validation by qualified medical professionals.
+
+\textbf{LLM usage disclosure.}\quad
+GPT-5.1 was used as the primary model for task generation (Step~0) and LLM-as-judge scoring.
+Claude Sonnet~4.5 was used in backup evaluation runs.
+All model outputs were treated as intermediate research artifacts subject to human oversight.

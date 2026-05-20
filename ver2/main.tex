@@ -1,0 +1,172 @@
+%%%%%%%% EMNLP 2025 (ARR submission) — Med-SkillBench %%%%%%%%
+
+\documentclass[11pt]{article}
+
+% Use [review] for anonymous submission; switch to [] for camera-ready.
+\usepackage[review]{acl}
+
+% Standard ACL packages
+\usepackage{times}
+\usepackage{latexsym}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{microtype}
+\usepackage{inconsolata}
+
+% Additional packages
+\usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage{multirow}
+\usepackage{booktabs}
+\usepackage[table]{xcolor}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{mathtools}
+\usepackage{amsthm}
+\usepackage{placeins}
+\usepackage[capitalize,noabbrev]{cleveref}
+\usepackage{xspace}
+\usepackage{enumitem}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{tikz}
+\usetikzlibrary{patterns,arrows.meta,positioning,decorations.pathreplacing}
+\input{math_commands.tex}
+
+% Theorem environments
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{proposition}[theorem]{Proposition}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+
+% Dev / annotation macros
+\newcommand{\jz}[1]{{\color{red}{[JZ: #1]}}}
+\newcommand{\todo}[1]{{\color{orange}{[TODO: #1]}}}
+\newcommand{\placeholder}[1]{%
+  \begin{center}
+  \fcolorbox{red}{yellow!10}{\parbox{0.9\linewidth}{\centering\textbf{[PLACEHOLDER]}\\#1}}
+  \end{center}
+}
+
+% --- Diverse visual placeholders -------------------------------------------
+% Generic figure block: dashed gray box with corner crop marks + light hatch.
+\newcommand{\figbox}[2]{%
+  \begin{center}
+  \begin{tikzpicture}
+    \def\W{\linewidth}
+    \node[draw=gray!70, dashed, very thick, minimum width=\W, minimum height=#1,
+          inner sep=0pt, fill=gray!5,
+          pattern=north east lines, pattern color=gray!15] (b) {};
+    \node[fill=white, draw=gray!50, inner sep=4pt, font=\small\itshape, align=center,
+          text width=0.85\W] at (b.center) {\textbf{[FIGURE PLACEHOLDER]}\\[2pt]#2};
+    \foreach \c in {north west, north east, south west, south east} {
+      \draw[gray!70, thick] (b.\c) ++(0,0) -- ++(0.4cm,0) (b.\c) -- ++(0,0.4cm);
+    }
+  \end{tikzpicture}
+  \end{center}
+}
+% Schematic / pipeline block: three sub-panels with arrows.
+\newcommand{\schematicbox}[2]{%
+  \begin{center}
+  \begin{tikzpicture}[node distance=4mm and 6mm]
+    \def\W{\linewidth}
+    \node[draw=blue!50, very thick, rounded corners=2pt, minimum width=\W,
+          minimum height=#1, inner sep=0pt, fill=blue!2] (frame) {};
+    \pgfmathsetlengthmacro{\panW}{0.27\linewidth}
+    \pgfmathsetlengthmacro{\panH}{#1-1.2cm}
+    \node[draw=blue!60, fill=blue!10, minimum width=\panW, minimum height=\panH,
+          rounded corners=2pt, font=\footnotesize, align=center]
+          (p1) at ([xshift=-0.34\linewidth]frame.center) {Stage A};
+    \node[draw=blue!60, fill=blue!15, minimum width=\panW, minimum height=\panH,
+          rounded corners=2pt, font=\footnotesize, align=center]
+          (p2) at (frame.center) {Stage B};
+    \node[draw=blue!60, fill=blue!20, minimum width=\panW, minimum height=\panH,
+          rounded corners=2pt, font=\footnotesize, align=center]
+          (p3) at ([xshift=0.34\linewidth]frame.center) {Stage C};
+    \draw[-{Latex[length=3mm]}, blue!70, very thick] (p1) -- (p2);
+    \draw[-{Latex[length=3mm]}, blue!70, very thick] (p2) -- (p3);
+    \node[fill=white, draw=blue!40, inner sep=3pt, font=\scriptsize\itshape,
+          align=center, text width=0.9\linewidth, below=2pt of frame.north]
+          {\textbf{[SCHEMATIC PLACEHOLDER]} \ #2};
+  \end{tikzpicture}
+  \end{center}
+}
+% Chart placeholder: faux axes + bar silhouette.
+\newcommand{\chartbox}[2]{%
+  \begin{center}
+  \begin{tikzpicture}
+    \def\W{\linewidth}
+    \node[draw=black!60, thick, minimum width=\W, minimum height=#1,
+          inner sep=0pt, fill=orange!3] (b) {};
+    % faux axes inside
+    \pgfmathsetlengthmacro{\inW}{0.78\linewidth}
+    \pgfmathsetlengthmacro{\inH}{#1-1.0cm}
+    \coordinate (origin) at ([xshift=0.10\linewidth, yshift=-0.35cm]b.south west);
+    \draw[black!70, thick] (origin) -- ++(\inW,0);
+    \draw[black!70, thick] (origin) -- ++(0,\inH);
+    % bars
+    \foreach \i/\h in {0/0.45,1/0.78,2/0.32,3/0.91,4/0.55,5/0.68}{
+      \pgfmathsetlengthmacro{\bx}{\i*0.12\linewidth + 0.03\linewidth}
+      \pgfmathsetlengthmacro{\bh}{\h*\inH}
+      \fill[orange!60, draw=orange!80] ([xshift=\bx]origin) rectangle ++(0.08\linewidth,\bh);
+    }
+    \node[fill=white, draw=black!50, inner sep=3pt, font=\scriptsize\itshape,
+          align=center, text width=0.9\linewidth, below=2pt of b.north]
+          {\textbf{[CHART PLACEHOLDER]} \ #2};
+  \end{tikzpicture}
+  \end{center}
+}
+% Code / repository callout: dark "terminal" frame.
+\newcommand{\codebox}[2]{%
+  \begin{center}
+  \begin{tikzpicture}
+    \node[draw=black, very thick, fill=black!85, minimum width=\linewidth,
+          minimum height=#1, rounded corners=3pt, inner sep=8pt] (term) {};
+    % traffic lights
+    \fill[red!80] ([xshift=0.4cm, yshift=-0.4cm]term.north west) circle (0.12cm);
+    \fill[yellow!80] ([xshift=0.75cm, yshift=-0.4cm]term.north west) circle (0.12cm);
+    \fill[green!70!black] ([xshift=1.10cm, yshift=-0.4cm]term.north west) circle (0.12cm);
+    \node[text=green!70!white, font=\ttfamily\small, align=left,
+          text width=0.85\linewidth, anchor=north west]
+          at ([xshift=0.4cm, yshift=-1.0cm]term.north west) {#2};
+  \end{tikzpicture}
+  \end{center}
+}
+
+% Paper-wide shorthand
+\newcommand{\medskillbench}{\textsc{Med-SkillBench}\xspace}
+\newcommand{\rbu}{\textsc{RBU}\xspace}
+\newcommand{\skillmd}{\texttt{SKILL.md}\xspace}
+
+% Anonymous repo placeholder
+\newcommand{\anonrepo}{\url{https://anonymous.4open.science/r/Med-SkillBench-TODO}}
+
+\title{Med-SkillBench: Evaluating Medical Agent Skills at Scale}
+
+\author{Anonymous ACL submission}
+
+\begin{document}
+\linenumbers
+\maketitle
+
+\input{sections/00_abstract}
+\input{sections/01_introduction}
+\input{sections/02_related_work}
+\input{sections/03_method}
+\input{sections/04_experiments}
+\input{sections/05_conclusion}
+
+\section*{Limitations}
+\input{sections/06_limitations}
+
+\section*{Ethical Considerations}
+\input{sections/07_ethical}
+
+\bibliography{custom}
+
+\clearpage
+\appendix
+\input{sections/99_appendix}
+
+\end{document}

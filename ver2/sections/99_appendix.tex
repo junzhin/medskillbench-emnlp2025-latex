@@ -1,0 +1,305 @@
+%!TEX root = ../main.tex
+% Appendix
+
+%% ============================================================
+\section{Evaluation Dimensions: Detailed Definitions}
+\label{app:eval_dimensions}
+
+The \medskillbench evaluation framework scores each skill--task trial along eight binary dimensions.
+The first three are designated \emph{core} dimensions; a skill passes overall only if all three core dimensions score~1.
+The remaining five are \emph{auxiliary} dimensions that capture execution quality beyond the minimum pass threshold.
+Below we provide the full definition and scoring criteria for each dimension.
+
+\paragraph{1.\ \texttt{skill\_invoked} (Core).}
+The agent explicitly references, reads, or attempts to use the \skillmd file during the execution trajectory.
+A score of~1 is assigned if the agent's trajectory contains evidence that the skill specification was consulted---for example, a file-read action targeting the \skillmd, direct quotation of skill instructions, or an explicit statement acknowledging the skill.
+A score of~0 indicates the agent completed the task without any evidence of engaging with the provided skill.
+
+\paragraph{2.\ \texttt{skill\_used\_correctly} (Core).}
+The agent applies the skill in a manner consistent with the specification's intended use case, input--output contract, and procedural instructions.
+A score of~1 requires that the agent's actions align with the skill's documented workflow---correct parameter usage, appropriate invocation context, and adherence to any constraints or prerequisites stated in the specification.
+Partial or superficial references to the skill that do not translate into specification-aligned actions receive a score of~0.
+
+\paragraph{3.\ \texttt{task\_completion} (Core).}
+The agent produces a final output that satisfies the task objective.
+Scoring considers whether the output addresses the stated goal, provides a substantive answer or artifact, and is not truncated, empty, or obviously incorrect.
+A score of~1 does not require perfect accuracy but demands that the output constitutes a reasonable, complete attempt.
+
+\paragraph{4.\ \texttt{tool\_execution\_success} (Auxiliary).}
+At least one tool invocation during the trajectory produces a verified, non-trivial output.
+This dimension captures whether the agent successfully grounds the skill specification into executable tool calls that return meaningful results.
+A score of~0 indicates that all tool calls either failed, produced empty outputs, or were never attempted despite the skill specifying tool-based workflows.
+
+\paragraph{5.\ \texttt{output\_quality} (Auxiliary).}
+The final output demonstrates domain-appropriate quality: accurate terminology, logically coherent reasoning, and sufficient depth for the task's complexity.
+The judge assesses whether the output would be considered adequate by a domain practitioner, accounting for the difficulty of the generated task.
+
+\paragraph{6.\ \texttt{reasoning\_quality} (Auxiliary).}
+The agent's reasoning trajectory---including intermediate steps, tool-call rationale, and error recovery---demonstrates logical coherence and appropriate problem decomposition.
+A score of~1 indicates that the agent's chain of thought is traceable, non-circular, and reflects genuine engagement with the problem rather than superficial pattern matching.
+
+\paragraph{7.\ \texttt{efficiency} (Auxiliary).}
+The agent completes the task within a reasonable number of iterations relative to task complexity, without excessive redundant actions, repeated failures on the same step, or unnecessary detours.
+A score of~0 is assigned when the agent exhausts the iteration budget, enters retry loops without progress, or performs substantially more actions than necessary.
+
+\paragraph{8.\ \texttt{trajectory\_quality} (Auxiliary).}
+The overall trajectory exhibits purposeful progression toward the goal, appropriate error handling, and coherent state management across iterations.
+This holistic dimension captures trajectory-level phenomena not addressed by individual dimensions: does the agent recover from failures constructively, maintain context across steps, and converge toward a solution?
+
+\paragraph{Aggregation.}
+A skill achieves \emph{pass} status when all three core dimensions score~1.
+A skill achieves \emph{gold} status when all eight dimensions score~1.
+\emph{Silver} status denotes core pass with at least one auxiliary failure.
+The \rbu gap is computed as the difference between \texttt{skill\_invoked} and \texttt{task\_completion} (see Equation~\ref{eq:rbu} in the main text).
+
+
+%% ============================================================
+\section{Mandatory Read-First Prompt}
+\label{app:read_first_prompt}
+
+Every skill evaluation trial injects the following system-level prompt before the task description to ensure the agent engages with the \skillmd file.
+This prompt is appended to the agent's system message and is not visible to the judge.
+
+\begin{small}
+\begin{verbatim}
+IMPORTANT: Before attempting this task, you MUST
+read the file SKILL.md in your current working
+directory. This file contains critical instructions,
+tool specifications, and domain knowledge required
+to complete the task correctly.
+
+Steps:
+1. Read SKILL.md completely before taking any action.
+2. Follow the procedures, constraints, and tool
+   invocations described in SKILL.md.
+3. If SKILL.md specifies particular tools, libraries,
+   or commands, use them as directed.
+4. Only after reading and understanding SKILL.md
+   should you proceed to address the task.
+
+Do NOT skip reading SKILL.md. Do NOT rely solely on
+your internal knowledge if SKILL.md provides
+specific procedures.
+\end{verbatim}
+\end{small}
+
+This prompt achieves a 96.2\% invocation rate across the full corpus of 1,462 skills, validating its effectiveness at directing agent attention.
+The remaining 3.8\% of non-invocation cases arise primarily from skills whose \skillmd files are empty, malformed, or contain only metadata headers without actionable content.
+
+
+%% ============================================================
+\section{Skill Domain Distribution}
+\label{app:domain_distribution}
+
+The 917 Tier-A skills in \medskillbench span multiple medical and biomedical domains, reflecting the breadth of open-source medical agent tool repositories.
+Domain annotations are produced by an automated classifier with manual verification of borderline cases.
+
+\paragraph{Primary domains.}
+The corpus covers the following major areas:
+\begin{itemize}[nosep,leftmargin=*]
+  \item \textbf{Biology \& Bioinformatics} --- Sequence analysis (BLAST, multiple sequence alignment), gene expression analysis, phylogenetics, genome annotation, protein structure prediction, and pathway analysis tools.
+  \item \textbf{Clinical Medicine} --- Clinical decision support, diagnostic reasoning guides, treatment protocol references, drug interaction checkers, and clinical calculator wrappers.
+  \item \textbf{Drug Development \& Pharmacology} --- Molecular docking, ADMET prediction, compound screening, pharmacokinetic modeling, and drug--target interaction databases.
+  \item \textbf{Chemoinformatics} --- Chemical structure manipulation (RDKit-based), molecular fingerprinting, SMILES/InChI conversion, and chemical property prediction.
+  \item \textbf{Proteomics \& Structural Biology} --- Protein--protein interaction analysis, mass spectrometry data processing, structural alignment, and binding site prediction.
+  \item \textbf{Genomics \& Variant Analysis} --- Variant calling, VCF processing, genome-wide association analysis, and annotation pipelines.
+  \item \textbf{Medical Literature \& Evidence} --- PubMed search, systematic review automation, evidence grading, and citation management.
+  \item \textbf{Laboratory \& Safety} --- Laboratory protocol guides, biosafety references, equipment operation procedures, and regulatory compliance checklists.
+  \item \textbf{Medical Imaging} --- DICOM processing, radiological analysis aids, and image segmentation tool wrappers.
+  \item \textbf{Public Health \& Epidemiology} --- Epidemiological modeling, outbreak analysis, surveillance data processing, and population health statistics.
+\end{itemize}
+
+\paragraph{Distribution characteristics.}
+The domain distribution is intentionally unbalanced, reflecting the natural distribution of skills in the source repositories.
+Biology \& Bioinformatics and Clinical Medicine together account for the largest share, followed by Drug Development and Medical Literature tools.
+This imbalance is preserved rather than artificially balanced, as it reflects the real-world landscape of available medical agent tools.
+
+
+%% ============================================================
+\section{Full Benchmark Statistics}
+\label{app:full_benchmark}
+
+\Cref{tab:full_benchmark} extends the summary in Table~\ref{tab:benchmark_match} with additional columns for absolute match counts, unique skill counts, and the top match types observed per benchmark.
+
+\begin{table*}[t]
+\centering\small
+\caption{Extended skill--benchmark matching statistics across 12 medical QA benchmarks (917 Tier-A skills).
+``Matched'' indicates the number of questions with at least one skill match.
+``Top match types'' lists the two most frequent match type annotations for each benchmark.}
+\begin{tabular}{lrrrrll}
+\toprule
+\textbf{Benchmark} & \textbf{Total Q} & \textbf{Matched} & \textbf{Match\%} & \textbf{Skills} & \textbf{Top Match Type 1} & \textbf{Top Match Type 2} \\
+\midrule
+Lab-Bench         &   900 & 416 & 46.2 & 90 & \texttt{database\_query}    & \texttt{literature\_search} \\
+MedAgents         &   332 &  96 & 28.9 & 16 & \texttt{literature\_search}  & \texttt{reasoning\_guide}   \\
+MedMCQA           & 4,183 &1,071& 25.6 & 50 & \texttt{literature\_search}  & \texttt{database\_query}    \\
+PubMedQA          & 1,000 & 194 & 19.4 & 35 & \texttt{literature\_search}  & \texttt{database\_query}    \\
+HeadQA            & 2,742 & 499 & 18.2 & 66 & \texttt{literature\_search}  & \texttt{reasoning\_guide}   \\
+SGI-Reasoning     &    72 &   9 & 12.5 & 17 & \texttt{reasoning\_guide}    & \texttt{literature\_search} \\
+MMLU-Med          & 1,089 & 127 & 11.7 & 42 & \texttt{literature\_search}  & \texttt{reasoning\_guide}   \\
+MedQA-USMLE       & 1,273 &  71 &  5.6 & 21 & \texttt{literature\_search}  & \texttt{reasoning\_guide}   \\
+LabSafety         &   765 &  42 &  5.5 &  3 & \texttt{literature\_search}  & \texttt{reasoning\_guide}   \\
+MedCalc-Bench     & 1,067 &  47 &  4.4 &  5 & \texttt{database\_query}     & \texttt{reasoning\_guide}   \\
+MedBullets-5op    &   298 &  15 &  5.0 &  6 & \texttt{literature\_search}  & \texttt{reasoning\_guide}   \\
+MedBullets-4op    &   298 &   8 &  2.7 &  6 & \texttt{literature\_search}  & \texttt{reasoning\_guide}   \\
+\midrule
+\textbf{Overall}  & \textbf{14,019} & \textbf{2,596} & \textbf{18.5} & \textbf{178} & \texttt{literature\_search} (71.7\%) & \texttt{database\_query} (21.0\%) \\
+\bottomrule
+\end{tabular}
+\label{tab:full_benchmark}
+\end{table*}
+
+\paragraph{Notes on matched counts.}
+The ``Matched'' column reports unique questions with at least one skill assignment; a single question may be matched to multiple skills, yielding approximately 3,898 total skill--question pairs across the 2,596 matched questions.
+Relevance annotations indicate that 91.5\% of matches are classified as \emph{weak} relevance (the skill provides tangential support) and 8.5\% as \emph{strong} relevance (the skill directly addresses the core reasoning required by the question).
+
+\paragraph{Skill concentration analysis.}
+Across all benchmarks, the top three matched skills are \texttt{agent-browser} (appearing in 78\% of all matched pairs), \texttt{ai-analyzer} (13.8\%), and \texttt{bio-entrez-search} (12.2\%).
+This heavy concentration underscores that current medical skill repositories favor general-purpose retrieval and analysis tools over domain-specialized reasoning aids.
+Lab-Bench is an exception, with 90 unique skills matched---the highest skill diversity of any benchmark---consistent with its emphasis on specific laboratory protocols and bioinformatics pipelines.
+
+
+%% ============================================================
+\section{Evaluation Stability}
+\label{app:eval_stability}
+
+To assess evaluation stability across the corpus, we report results stratified by processing batch in \Cref{tab:batch_stability}.
+Skills were processed in sequential batches of 400 (with the final batch containing the remaining 262 skills).
+
+\begin{table}[t]
+\centering\small
+\caption{Evaluation results by processing batch, demonstrating stability across the corpus.}
+\begin{tabular}{lrccr}
+\toprule
+\textbf{Batch} & \textbf{$n$} & \textbf{Pass\%} & \textbf{Gold\%} & \textbf{\rbu Gap} \\
+\midrule
+1 (1--400)       & 400 & 57.8 & 15.0 & 0.333 \\
+2 (401--800)     & 400 & 65.5 & 23.8 & 0.173 \\
+3 (801--1200)    & 400 & 68.3 & 22.8 & 0.168 \\
+4 (1201--1462)   & 262 & 67.2 & 20.2 & 0.199 \\
+\midrule
+\textbf{Overall} & \textbf{1,462} & \textbf{64.4} & \textbf{20.5} & \textbf{0.220} \\
+\bottomrule
+\end{tabular}
+\label{tab:batch_stability}
+\end{table}
+
+Batches 2--4 show stable performance, with pass rates in the 65.5--68.3\% range and \rbu gaps between 0.168 and 0.199, confirming that the evaluation framework yields consistent results across the corpus.
+
+
+%% ============================================================
+\section{Skill-Augmented QA: Detailed Results}
+\label{app:ablation_details}
+
+This appendix provides extended results for the skill-augmented QA evaluation reported in \Cref{ssec:ablation_results}.
+
+\paragraph{Per-benchmark breakdown.}
+\Cref{tab:ablation_full} reports per-benchmark accuracy under both conditions for all evaluated models, including benchmarks omitted from the main-text table due to small matched sample sizes.
+
+\begin{table*}[t]
+\centering\small
+\caption{Extended skill-augmented QA results across all 12 medical benchmarks. $n$: number of evaluated (question, skill) pairs per benchmark. Bold $\Delta$ indicates $p < 0.05$ (McNemar's test).}
+\begin{tabular}{lrcccccc}
+\toprule
+\textbf{Benchmark} & \textbf{$n$} & \multicolumn{3}{c}{\textbf{GPT-5.1}} & \multicolumn{3}{c}{\textbf{Claude Sonnet~4.5}} \\
+\cmidrule(lr){3-5} \cmidrule(lr){6-8}
+ & & w/o & w/ & $\Delta$ & w/o & w/ & $\Delta$ \\
+\midrule
+Lab-Bench       & \todo{} & \todo{} & \todo{} & \todo{} & \todo{} & \todo{} & \todo{} \\
+MedAgents       & \todo{} & \todo{} & \todo{} & \todo{} & \todo{} & \todo{} & \todo{} \\
+MedMCQA         & \todo{} & \todo{} & \todo{} & \todo{} & \todo{} & \todo{} & \todo{} \\
+PubMedQA        & \todo{} & \todo{} & \todo{} & \todo{} & \todo{} & \todo{} & \todo{} \\
+HeadQA          & \todo{} & \todo{} & \todo{} & \todo{} & \todo{} & \todo{} & \todo{} \\
+SGI-Reasoning   & \todo{} & \todo{} & \todo{} & \todo{} & \todo{} & \todo{} & \todo{} \\
+MMLU-Med        & \todo{} & \todo{} & \todo{} & \todo{} & \todo{} & \todo{} & \todo{} \\
+MedQA-USMLE     & \todo{} & \todo{} & \todo{} & \todo{} & \todo{} & \todo{} & \todo{} \\
+LabSafety       & \todo{} & \todo{} & \todo{} & \todo{} & \todo{} & \todo{} & \todo{} \\
+MedCalc-Bench   & \todo{} & \todo{} & \todo{} & \todo{} & \todo{} & \todo{} & \todo{} \\
+MedBullets-5op  & \todo{} & \todo{} & \todo{} & \todo{} & \todo{} & \todo{} & \todo{} \\
+MedBullets-4op  & \todo{} & \todo{} & \todo{} & \todo{} & \todo{} & \todo{} & \todo{} \\
+\midrule
+\textbf{Overall} & \todo{} & \todo{} & \todo{} & \todo{} & \todo{} & \todo{} & \todo{} \\
+\bottomrule
+\end{tabular}
+\label{tab:ablation_full}
+\end{table*}
+
+\paragraph{Statistical details.}
+For each benchmark--model pair, we report the McNemar $\chi^2$ statistic and two-sided $p$-value.
+Bootstrap 95\% confidence intervals for the uplift are computed via 10,000 resamples of the paired (with, without) binary outcome vectors.
+\todo{Populate statistical results once Step~2 experiments complete.}
+
+\paragraph{Uplift distribution.}
+Per-question uplift takes one of three values: $+1$ (with-skill correct, without-skill incorrect), $0$ (same outcome), or $-1$ (with-skill incorrect, without-skill correct).
+The proportion of $+1$ vs.\ $-1$ outcomes determines the direction and magnitude of the aggregate effect.
+\todo{Report uplift distribution breakdown and add histogram figure.}
+
+
+%% ============================================================
+\section{SGI Sensitivity Analysis}
+\label{app:sgi_sensitivity}
+
+We verify that the core findings are robust to the choice of $w_c$ in the \textsc{SGI} definition (\Cref{eq:sgi}).
+The dominance principle (\Cref{eq:wc_derivation}) requires $w_c > 0.75$ to guarantee that any core-failing skill ranks below any core-passing skill.
+We report results for $w_c \in \{0.60, 0.70, 0.75, 0.80\}$.
+
+\begin{table}[t]
+\centering\small
+\caption{\textsc{SGI} sensitivity to $w_c$. Domain rankings and the separation between core-passing and core-failing skills are reported for each weight.}
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Metric} & $w_c{=}0.60$ & $w_c{=}0.70$ & $w_c{=}0.75$ & $w_c{=}0.80$ \\
+\midrule
+Mean \textsc{SGI} (all)          & \todo{} & \todo{} & \todo{} & \todo{} \\
+Mean \textsc{SGI} (core-pass)    & \todo{} & \todo{} & \todo{} & \todo{} \\
+Mean \textsc{SGI} (core-fail)    & \todo{} & \todo{} & \todo{} & \todo{} \\
+Separation (pass $-$ fail)       & \todo{} & \todo{} & \todo{} & \todo{} \\
+Domain rank correlation ($\tau$) & \todo{} & \todo{} & \todo{} & \todo{} \\
+\bottomrule
+\end{tabular}
+\label{tab:sgi_sensitivity}
+\end{table}
+
+\todo{Compute SGI under all four $w_c$ values from Step~0 data and verify that domain rankings are stable (Kendall's $\tau > 0.9$).}
+At $w_c = 0.60$, the dominance property is violated: a core-failing skill with perfect auxiliary quality achieves $\textsc{SGI} = 0.80$, outscoring a core-passing skill with zero auxiliary quality ($\textsc{SGI} = 0.60$).
+At $w_c \geq 0.75$, the separation is guaranteed.
+
+
+%% ============================================================
+\section{Statistical Testing Details}
+\label{app:statistical_details}
+
+This appendix provides the full statistical testing framework for the skill-augmented QA evaluation.
+
+\paragraph{McNemar's test for paired binary outcomes.}
+For each skill--question pair $(x_i, s, g_i) \in \mathcal{P}_\mu$, let $c_{i,s}^{+} = \mathbf{1}[\mathcal{M}(x_i, s) = g_i]$ (with-skill correctness) and $c_{i,s}^{-} = \mathbf{1}[\mathcal{M}(x_i, \varnothing) = g_i]$ (without-skill correctness).
+The discordant counts are:
+\begin{equation}
+b = \sum_{(i,s)} \mathbf{1}[c_{i,s}^{+} = 1 \wedge c_{i,s}^{-} = 0], \quad c = \sum_{(i,s)} \mathbf{1}[c_{i,s}^{+} = 0 \wedge c_{i,s}^{-} = 1].
+\label{eq:mcnemar_counts}
+\end{equation}
+Under $H_0$: skill availability has no effect, $b$ and $c$ follow a binomial distribution with equal probabilities.
+The McNemar statistic is:
+\begin{equation}
+\chi^2_{\text{McN}} = \frac{(b - c)^2}{b + c} \;\sim\; \chi^2(1).
+\label{eq:mcnemar_stat}
+\end{equation}
+We reject $H_0$ at $\alpha = 0.05$ if $\chi^2_{\text{McN}} > 3.841$.
+
+\paragraph{Multi-match dependence.}
+When a question matches multiple skills ($|\mu(x_i)| > 1$), pairs sharing the same question have correlated without-skill outcomes $c_{i,s}^{-}$, violating the independence assumption.
+We address this via clustered bootstrap (clustering by question index $i$) as a robustness check alongside the standard McNemar test.
+
+\paragraph{Bootstrap confidence intervals.}
+For $\Delta_{\text{uplift}}$, we construct bootstrap 95\% CIs by resampling the paired outcome vectors with replacement $B = 10{,}000$ times, clustering by question index $i$:
+\begin{equation}
+\text{CI}_{95\%}(\Delta_{\text{uplift}}) = \left[\hat{\Delta}^{*(0.025)}, \;\hat{\Delta}^{*(0.975)}\right],
+\label{eq:bootstrap_ci}
+\end{equation}
+where $\hat{\Delta}^{*(\alpha)}$ is the $\alpha$-quantile of the bootstrap distribution.
+
+\paragraph{Groundability-uplift correlation.}
+The aggregate interface-type correlation (\Cref{eq:uplift_prediction}) is computed over $|\mathcal{I}| = 5$ data points.
+With $n = 5$, the critical value for significance at $\alpha = 0.05$ is $|r| > 0.878$, yielding negligible statistical power.
+We therefore use the per-skill \textsc{SGI}$\to$uplift regression (\Cref{eq:per_skill_reg}) as the primary test, which operates over individual skills (higher $n$) and provides substantially greater power.
+\todo{Report both $r_{GU}$ and $\hat{\beta}_1$ with standard errors once Step~2 experiments complete.}

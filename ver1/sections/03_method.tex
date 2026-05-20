@@ -1,0 +1,159 @@
+% !TEX root = ../main.tex
+%% Section 3 — Method
+
+\section{Method}
+\label{sec:method}
+
+We present \medskille, an evaluate--diagnose--evolve framework for medical agent skills.
+Given a skill set $\mathcal{S}=\{s_1,\dots,s_n\}$ where each skill $s_i$ is defined by a structured \skillmd description, we study a grounded execution problem: when a skill is provided to a model~$M$, can $M$ translate the description into a correct execution trajectory and real output?
+Formally, the agent's execution on task~$x$ with skill~$s$ yields trajectory $\tau = M(x, s)$, which is scored by an evaluation function $E(\tau, s, x) \rightarrow \vy \in \{0,1\}^8$ producing an eight-dimensional binary execution quality vector.
+
+The framework has two components: \medskillbench (\Cref{subsec:bench}) for skill-level evaluation and diagnosis, and \gepamed (\Cref{subsec:gepa}) for description-level evolution.
+
+%% ============================================================
+%% 3.1 Med-SkillBench
+%% ============================================================
+
+\subsection{\medskillbench: Skill-Level Execution Benchmark}
+\label{subsec:bench}
+
+Existing medical agent benchmarks evaluate end-to-end task completion \citep{healthbench2025,medagentbench2025} or library-level tool retrieval \citep{skillsbench2026,skillnet2026}, but neither setup isolates the contribution of an individual skill's \emph{description quality} to execution success.
+\medskillbench fills this gap with four design requirements:
+(1)~skill-level isolation---each skill is evaluated independently;
+(2)~execution fidelity---scores reflect real tool invocation in a sandboxed agent loop;
+(3)~failure attribution---the scoring scheme distinguishes where in the execution chain a failure occurs;
+(4)~reusability for evolution---the same protocol applies before and after description edits.
+
+\paragraph{Skill Collection and Quality Filtering.}
+We harvest skills from three open-source medical skill repositories covering genomics, proteomics, single-cell analysis, chemoinformatics, bioinformatics, clinical decision support, and medical research tooling.
+De-duplication yields \textbf{1,462} unique skills, each defined by a \skillmd specifying name, description, parameter schema, and optionally usage examples and safety notes.
+Before agent execution, a five-dimensional binary static pre-scan checks:
+(i)~\texttt{can\_get\_credentials},
+(ii)~\texttt{content\_complete},
+(iii)~\texttt{dependencies\_resolvable},
+(iv)~\texttt{has\_clear\_io},
+(v)~\texttt{has\_documentation}.
+The surviving \textbf{917 Tier-A skills} form the evaluation set.
+
+\paragraph{Isolated Evaluation Protocol.}
+Each skill is evaluated inside an independent temporary workspace containing only the skill's own artifacts.
+No other skills, shared registries, or caches are present.
+The agent operates within a bounded AgentLoop of at most 40 iterations with a 300-second wall-clock timeout.
+To ensure the agent reads the description before acting, we prepend a \emph{mandatory read-first} instruction to every prompt, making the \texttt{skill\_invoked} dimension an interpretable signal: $y_1=0$ means the agent ignored the description even when directed to read it.
+
+\paragraph{Task Construction.}
+For each skill we generate a diagnostic synthetic task matching the skill's declared purpose.
+Tasks require actual tool execution rather than planning, with concrete completion criteria.
+A separate LLM generates each task, enforcing \textbf{role separation}: task generator, executor, and judge are distinct model calls.
+
+\paragraph{Eight-Dimensional Binary Scoring.}
+Each evaluation produces a vector $\vy = (y_1, \ldots, y_8) \in \{0,1\}^8$:
+$y_1$:~\texttt{skill\_invoked},
+$y_2$:~\texttt{skill\_used\_correctly},
+$y_3$:~\texttt{task\_completion},
+$y_4$:~\texttt{tool\_execution\_success},
+$y_5$:~\texttt{output\_quality},
+$y_6$:~\texttt{reasoning\_quality},
+$y_7$:~\texttt{efficiency},
+$y_8$:~\texttt{trajectory\_quality}.
+We define:
+\begin{align}
+    \textsc{Pass}(s) &= \mathbf{1}\bigl[y_1{=}1 \;\wedge\; y_2{=}1 \;\wedge\; y_3{=}1\bigr], \label{eq:pass} \\
+    \textsc{Gold}(s) &= \mathbf{1}\!\left[\textstyle\sum_{i=1}^{8} y_i = 8\right]. \label{eq:gold}
+\end{align}
+Binary dimensions yield unambiguous pass/fail decisions that directly inform the evolution loop, avoiding calibration difficulties of Likert-scale scoring across heterogeneous medical domains.
+
+\paragraph{The Read-But-Not-Use Gap.}
+We formalize the gap between invocation and completion as:
+\begin{equation}
+    \Delta_{\textsc{RBU}} = \bar{y}_1 - \bar{y}_3, \quad
+    \bar{y}_k = \tfrac{1}{|\mathcal{S}|}\textstyle\sum_{s \in \mathcal{S}} y_k^{(s)}.
+    \label{eq:rbu}
+\end{equation}
+A large $\Delta_{\textsc{RBU}}$ indicates that agents can read skill descriptions but fail to ground them into correct execution---a specification-level failure invisible to benchmarks measuring only end-to-end task success.
+
+\begin{figure*}[!t]
+\schematicbox{6.2cm}{Figure 2: \medskillbench evaluation pipeline. Three source repositories $\to$ catalog construction $\to$ static quality filtering $\to$ Tier-A subset $\to$ isolated AgentLoop execution $\to$ 8-dimensional binary scoring.}
+\caption{Overview of the \medskillbench evaluation pipeline, spanning catalog construction, static quality filtering, isolated agent execution, and 8-dimensional binary scoring.}
+\label{fig:pipeline}
+\end{figure*}
+
+%% ============================================================
+%% 3.2 GEPA-Med
+%% ============================================================
+
+\subsection{\gepamed: Reflective Skill Description Evolution}
+\label{subsec:gepa}
+
+Recent prompt evolution work \citep{gepa2025} shows that failed trajectories contain rich natural-language evidence that can guide targeted revision.
+Tool-description rewriting has been explored for shorter specifications \citep{easytool2024,play2prompt2025,tracefree2026}, but medical \skillmd files present a qualitatively different target: they may span hundreds of lines including parameter schemas, safety notes, and domain references.
+\gepamed extends reflective evolution to complete skill descriptions, addressing three challenges:
+(1)~longer evolution target;
+(2)~medical domain constraints requiring preservation of clinical accuracy and safety boundaries;
+(3)~multi-objective optimization across the eight scoring dimensions.
+
+\paragraph{Failure Diagnosis.}
+Given description~$d$, task~$x$, trajectory~$\tau$, and scores~$\vy$, the \textsc{Reflect} module produces a structured diagnosis $r = \textsc{Reflect}(d, x, \tau, \vy)$ that identifies whether failure is attributable to the description layer and classifies the root cause.
+We define six categories from trajectory inspection:
+\emph{parameter schema ambiguity},
+\emph{overlong workflow},
+\emph{hidden dependencies},
+\emph{terminology inconsistency},
+\emph{missing minimal working example}, and
+\emph{implicit safety boundaries}.
+
+\paragraph{Targeted Mutation.}
+The \textsc{Mutate} module produces $d' = \textsc{Mutate}(d, r)$ under a key constraint: \emph{only the natural-language content of the \skillmd is modified}; underlying code, API endpoints, and execution environment remain unchanged.
+Allowed mutations include: rewriting parameter specifications, compressing procedural text to checklists, adding minimal working examples, inserting fallback instructions, unifying terminology, and surfacing safety boundaries.
+
+\paragraph{Pareto Selection.}
+The evolved $d'$ is re-evaluated on \medskillbench.
+Selection is framed as multi-objective optimization:
+\begin{equation}
+    \begin{split}
+    \max_{d' \in \mathcal{D}} \;\bigl(&\textsc{Invocation}(d'),\\
+    &\textsc{Completion}(d'),\; \textsc{Quality}(d')\bigr).
+    \end{split}
+    \label{eq:pareto}
+\end{equation}
+Descriptions on the Pareto front are retained; dominated variants are discarded.
+The overall loop---\textbf{Evaluate} $\to$ \textbf{Diagnose} $\to$ \textbf{Mutate} $\to$ \textbf{Re-evaluate}---terminates when no non-dominated improvement is found.
+\todo{Pending GEPA-Med experiments.}
+
+\begin{algorithm}[t]
+\caption{\gepamed: Reflective Skill Description Evolution}
+\label{alg:gepa_med}
+\begin{algorithmic}[1]
+\Require skill $s$, initial description $d^{(0)}$, task generator $\mathcal{G}$, model $M$, max iterations $T$
+\Ensure Pareto-optimal evolved description $d^{*}$
+\State $x \gets \mathcal{G}(s)$ \Comment{Generate diagnostic task for $s$}
+\State $\tau^{(0)} \gets \textsc{AgentLoop}(M,\,s,\,x,\,d^{(0)})$ \Comment{$\le$40 iter, 300\,s wall-clock}
+\State $\vy^{(0)} \gets \textsc{Score}(\tau^{(0)},\,s,\,x)$ \Comment{8-dim binary vector}
+\State $\mathcal{F} \gets \{(d^{(0)},\,\vy^{(0)})\}$ \Comment{Initialize Pareto front}
+\For{$t \gets 0$ \textbf{to} $T-1$}
+    \State $r \gets \textsc{Reflect}(d^{(t)},\,x,\,\tau^{(t)},\,\vy^{(t)})$ \Comment{Root-cause diagnosis}
+    \If{$r = \varnothing$} \textbf{break} \EndIf \Comment{Not description-attributable}
+    \State $d^{(t+1)} \gets \textsc{Mutate}(d^{(t)},\,r)$ \Comment{NL-only edit; code/API unchanged}
+    \State $\tau^{(t+1)} \gets \textsc{AgentLoop}(M,\,s,\,x,\,d^{(t+1)})$
+    \State $\vy^{(t+1)} \gets \textsc{Score}(\tau^{(t+1)},\,s,\,x)$
+    \State $\mathcal{F} \gets \textsc{ParetoUpdate}\!\left(\mathcal{F},\,(d^{(t+1)},\,\vy^{(t+1)})\right)$
+    \If{$\mathcal{F}$ unchanged} \textbf{break} \EndIf \Comment{No non-dominated gain}
+\EndFor
+\State \Return $\displaystyle\arg\max_{(d,\,\vy)\in\mathcal{F}}\;\bigl[\textsc{Inv}(d)+\textsc{Comp}(d)+\textsc{Qual}(d)\bigr]$
+\end{algorithmic}
+\end{algorithm}
+
+\begin{figure*}[!t]
+\schematicbox{6.2cm}{Figure 3: \gepamed architecture. Failed trajectory $\to$ failure diagnosis $\to$ targeted \skillmd mutation $\to$ Pareto-based selection over multiple execution quality objectives.}
+\caption{\gepamed iteratively evolves skill descriptions through reflective failure diagnosis, targeted natural-language mutation, and Pareto selection across invocation, completion, and quality objectives.}
+\label{fig:gepa_med}
+\end{figure*}
+
+%% ============================================================
+\subsection{Reproducibility and Code Release}
+\label{subsec:reproducibility}
+
+All evaluation transcripts, judge scores, evolved \skillmd files, and matching tables are released as a frozen v2 snapshot.
+Anonymous review access is provided at the URL embedded below; final camera-ready will include a permanent DOI.
+
+\codebox{2.6cm}{\$ git clone https://anonymous.4open.science/r/MedSkill-E2-TODO\\\$ cd MedSkill-E2 \&\& make reproduce\\\# artifacts: catalog\_v2, step0\_scores,\\\# \ \ \ \ \ \ \ \ \ \ \ step1\_matches, gepa\_med\_runs}

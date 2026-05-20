@@ -1,0 +1,60 @@
+% !TEX root = ../main.tex
+\section{Introduction}
+\label{sec:intro}
+
+Large language model (LLM) agents increasingly rely on external \emph{skills}---structured tool descriptions that extend model capabilities beyond parametric knowledge---to perform domain-specific tasks.
+Recent work demonstrates that curated skill libraries substantially improve agent performance: \citet{skillsbench2026} report an average gain of 16.2 percentage points across domains, with the medical domain exhibiting the largest improvement at 51.9 percentage points.
+This finding underscores the critical role of skill quality in high-stakes settings such as clinical decision support, biomedical literature analysis, and drug safety assessment.
+
+Despite this promise, medical skills present unique evaluation challenges that existing benchmarks do not address.
+Medical skill specifications encode domain-specific safety boundaries, clinical workflow constraints, and a fundamental \emph{reasoning--execution duality}: some skills wrap executable tools (BLAST, RDKit, clinical calculators), while others provide purely reasoning-based guidance (differential diagnosis protocols, evidence synthesis frameworks).
+Both modes are clinically legitimate but require fundamentally different quality criteria.
+
+\paragraph{Task-level evaluation obscures skill-level failures.}
+Existing medical agent benchmarks evaluate end-to-end task success \citep{healthbench2025, medagentbench2025, labbench2024} but do not isolate whether the agent correctly \emph{executed} the skill specification it was given.
+An agent may answer a clinical question correctly by ignoring a poorly written drug interaction checker, or it may fail a genomic analysis task despite faithfully following a specification that omits critical parameter constraints.
+Task-level metrics conflate these fundamentally different failure modes, leaving skill developers without actionable feedback on \emph{where} in the specification--execution chain failures originate.
+
+\medskillbench addresses this gap through systematic skill-level evaluation that treats skill descriptions as first-class agent interfaces whose execution quality can be independently measured, decomposed across eight diagnostic dimensions, and stratified by medical domain.\footnote{Code, data, and evaluation artifacts are available at \anonrepo.}
+
+\begin{figure}[t]
+\figbox{5.2cm}{Figure 1 (Teaser): the \rbu gap. Left panel---agents read \skillmd at 96.2\% invocation. Right panel---only 74.3\% complete the specified task. The 22-pp wedge between the two represents specification grounding failure.}
+\caption{The \rbu gap: agents read skill specifications (96.2\%) yet only complete skill-grounded tasks at 74.3\%, exposing a 22-percentage-point specification grounding failure.}
+\label{fig:teaser}
+\end{figure}
+
+\paragraph{Contribution 1: \medskillbench.}
+We introduce the first large-scale skill-level execution benchmark for medical AI agents.
+\medskillbench aggregates 1,462 skills from three open-source medical skill repositories and evaluates each in an isolated sandbox environment.
+A mandatory \emph{read-first} protocol ensures the agent must parse the \skillmd specification before attempting execution.
+An LLM-as-judge scores each execution trajectory along eight binary dimensions---\emph{skill invocation}, \emph{correct usage}, \emph{task completion}, \emph{tool execution success}, \emph{output quality}, \emph{reasoning quality}, \emph{efficiency}, and \emph{trajectory quality}---providing fine-grained diagnostic signal rather than a single pass/fail label.
+
+\paragraph{Contribution 2: \rbu gap quantification.}
+Using \medskillbench, we identify and quantify a systematic \emph{read-but-not-use} (\rbu) gap: agents invoke skills at a rate of 96.2\% but complete the specified tasks at only 74.3\%, yielding a 22-percentage-point gap.
+This gap represents a \emph{specification grounding failure}---the model recognizes what a skill describes but cannot reliably translate that description into correct execution.
+Stratifying by \texttt{tool\_type} reveals that the gap is strongly modulated by skill interface design: guide-style skills (no executable tool) exhibit an \rbu gap of 0.269, while tool-based skills show substantially smaller gaps (CLI: 0.106; Python: 0.099; mixed: 0.069; R: 0.111).
+This finding shifts the diagnosis from ``models cannot use tools'' to ``models struggle most when skill descriptions lack executable grounding.''
+A formal two-stage decomposition reveals that the gap is overwhelmingly driven by semantic grounding failure ($\delta_{\text{sem}} = 0.242$) rather than execution failure ($\delta_{\text{exec}} = -0.023$), with the negative execution component indicating that models sometimes succeed by bypassing the skill specification entirely.
+
+\paragraph{Contribution 3: Skill-augmented QA evaluation.}
+We evaluate whether skill availability measurably improves model performance on real medical benchmark questions.
+By pairing validated skill--question matches with a controlled with/without-skill ablation across multiple executor models, we quantify the accuracy uplift attributable to skill specifications and show that the uplift is strongly modulated by skill interface type---consistent with the \rbu gap analysis.
+\todo{Report uplift magnitude and statistical significance.}
+
+Our work is organized around three research questions:
+\begin{enumerate}[nosep,leftmargin=*,label=\textbf{RQ\arabic*:}]
+    \item Do medical agent skills exhibit a systematic read-but-not-use gap between specification comprehension and execution?
+    \item Is the gap primarily attributable to environment dependency or to description-level grounding failure?
+    \item Does skill availability improve model accuracy on real medical QA benchmarks, and is the uplift modulated by skill execution quality?
+\end{enumerate}
+
+\paragraph{Positioning.}
+Following the taxonomy of \citet{skillsbench2026}, \medskillbench operates primarily at the \emph{Skill Deployment} tier (T2), evaluating skills post-authoring.
+It secondarily informs \emph{Skill Development} (T1) by identifying which description patterns yield higher groundability.
+The benchmark requires no model training and is applicable to closed-weight models and resource-constrained settings alike.
+
+The remainder of this paper is structured as follows.
+\S\ref{sec:related_work} reviews related work.
+\S\ref{sec:method} details the \medskillbench evaluation protocol and the skill-augmented QA evaluation design.
+\S\ref{sec:experiments} reports experimental results, including skill-augmented performance analysis, and discusses implications.
+\S\ref{sec:conclusion} concludes.

@@ -1,0 +1,9 @@
+% !TEX root = ../main.tex
+\begin{abstract}
+LLM agents increasingly depend on external skills to perform medical tasks, yet existing benchmarks measure only end-to-end task success---not whether the agent correctly executes the skill specification it was given.
+We introduce \medskillbench, the first large-scale skill-level execution benchmark for medical AI agents, comprising 1,462 skills from three open-source repositories evaluated in isolated sandboxes with a mandatory read-first protocol and eight-dimensional binary scoring.
+Our evaluation reveals a systematic \emph{read-but-not-use} (\rbu) gap: agents invoke skills at 96.2\% but complete specified tasks at only 74.3\%, a 22-percentage-point specification grounding failure.
+Stratifying by skill interface type shows that guide-style skills (no executable tool) exhibit the largest gap (0.269), while tool-based skills show substantially smaller gaps (0.069--0.111), identifying description groundability---not environment dependency---as the primary bottleneck.
+To close this gap, we propose \gepamed, a reflective prompt evolution method that uses execution trajectories and judge feedback to iteratively rewrite skill descriptions without model weight changes.
+\medskille establishes a framework that shifts medical agent skills from static documentation to evolvable, evaluation-driven interfaces.
+\end{abstract}

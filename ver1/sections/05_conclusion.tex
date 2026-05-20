@@ -1,0 +1,17 @@
+% !TEX root = ../main.tex
+\section{Conclusion}
+\label{sec:conclusion}
+
+We presented \medskille, a framework for evaluating and evolving medical agent skills at scale.
+\medskillbench provides the first skill-level execution benchmark for medical AI, covering 1,462 skills with eight-dimensional scoring in isolated sandbox environments.
+Using this benchmark, we identified and quantified a systematic \emph{read-but-not-use} gap of 22 percentage points between skill invocation (96.2\%) and task completion (74.3\%).
+Critically, stratification by \texttt{tool\_type} reveals that guide-style skills without executable interfaces exhibit the largest gap (0.269), while tool-based skills achieve substantially tighter coupling between comprehension and execution (0.069--0.111).
+This finding reframes the core bottleneck: the primary failure mode is not that models cannot operate tools, but that natural-language-only skill descriptions lack sufficient grounding for reliable execution.
+
+Building on this diagnostic signal, we proposed \gepamed, a training-free method that uses execution trajectories and judge feedback to iteratively refine skill descriptions.
+\todo{Report GEPA-Med improvement magnitude and cross-model transfer results once experiments conclude.}
+
+Our results establish that medical agent skills are not static documents to be written once and deployed indefinitely.
+They are evolvable interfaces whose quality can be systematically measured and improved through evaluation-driven feedback loops.
+We believe the evaluate--diagnose--evolve paradigm extends naturally beyond the medical domain to any setting where LLM agents consume structured skill specifications, offering a training-free path toward more reliable agent--tool interaction.
+We discuss remaining limitations in \S\ref{sec:limitations}.
