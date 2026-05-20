@@ -120,6 +120,29 @@ Descriptions on the Pareto front are retained; dominated variants are discarded.
 The overall loop---\textbf{Evaluate} $\to$ \textbf{Diagnose} $\to$ \textbf{Mutate} $\to$ \textbf{Re-evaluate}---terminates when no non-dominated improvement is found.
 \todo{Pending GEPA-Med experiments.}
 
+\begin{algorithm}[t]
+\caption{\gepamed: Reflective Skill Description Evolution}
+\label{alg:gepa_med}
+\begin{algorithmic}[1]
+\Require skill $s$, initial description $d^{(0)}$, task generator $\mathcal{G}$, model $M$, max iterations $T$
+\Ensure Pareto-optimal evolved description $d^{*}$
+\State $x \gets \mathcal{G}(s)$ \Comment{Generate diagnostic task for $s$}
+\State $\tau^{(0)} \gets \textsc{AgentLoop}(M,\,s,\,x,\,d^{(0)})$ \Comment{$\le$40 iter, 300\,s wall-clock}
+\State $\vy^{(0)} \gets \textsc{Score}(\tau^{(0)},\,s,\,x)$ \Comment{8-dim binary vector}
+\State $\mathcal{F} \gets \{(d^{(0)},\,\vy^{(0)})\}$ \Comment{Initialize Pareto front}
+\For{$t \gets 0$ \textbf{to} $T-1$}
+    \State $r \gets \textsc{Reflect}(d^{(t)},\,x,\,\tau^{(t)},\,\vy^{(t)})$ \Comment{Root-cause diagnosis}
+    \If{$r = \varnothing$} \textbf{break} \EndIf \Comment{Not description-attributable}
+    \State $d^{(t+1)} \gets \textsc{Mutate}(d^{(t)},\,r)$ \Comment{NL-only edit; code/API unchanged}
+    \State $\tau^{(t+1)} \gets \textsc{AgentLoop}(M,\,s,\,x,\,d^{(t+1)})$
+    \State $\vy^{(t+1)} \gets \textsc{Score}(\tau^{(t+1)},\,s,\,x)$
+    \State $\mathcal{F} \gets \textsc{ParetoUpdate}\!\left(\mathcal{F},\,(d^{(t+1)},\,\vy^{(t+1)})\right)$
+    \If{$\mathcal{F}$ unchanged} \textbf{break} \EndIf \Comment{No non-dominated gain}
+\EndFor
+\State \Return $\displaystyle\arg\max_{(d,\,\vy)\in\mathcal{F}}\;\bigl[\textsc{Inv}(d)+\textsc{Comp}(d)+\textsc{Qual}(d)\bigr]$
+\end{algorithmic}
+\end{algorithm}
+
 \begin{figure*}[!t]
 \schematicbox{6.2cm}{Figure 3: \gepamed architecture. Failed trajectory $\to$ failure diagnosis $\to$ targeted \skillmd mutation $\to$ Pareto-based selection over multiple execution quality objectives.}
 \caption{\gepamed iteratively evolves skill descriptions through reflective failure diagnosis, targeted natural-language mutation, and Pareto selection across invocation, completion, and quality objectives.}
