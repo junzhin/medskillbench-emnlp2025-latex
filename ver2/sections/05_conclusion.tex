@@ -8,8 +8,8 @@ Critically, stratification by \texttt{tool\_type} reveals that guide-style skill
 A two-stage decomposition of the \rbu gap into semantic grounding ($\delta_{\text{sem}}$) and execution completion ($\delta_{\text{exec}}$) components reveals that the dominant bottleneck is specification-to-action translation, not action-to-outcome execution.
 This finding reframes the core bottleneck: the primary failure mode is not that models cannot operate tools, but that natural-language-only skill descriptions lack sufficient grounding for reliable execution.
 
-Linking skills to real medical QA benchmarks, we further demonstrate that skill availability yields a measurable accuracy uplift of \todo{X} percentage points on average, with the effect strongly modulated by skill interface type---consistent with the \rbu gap analysis.
-This closes the diagnostic loop: skill-level execution quality, as measured by \medskillbench, directly predicts downstream task performance gains.
+Linking skills to real medical QA benchmarks, we further demonstrate that specification availability yields a measurable accuracy uplift of \todo{X} percentage points on average, with the effect strongly modulated by skill interface type---consistent with the \rbu gap analysis.
+This establishes a direct connection between skill-level execution quality, as measured by \medskillbench, and downstream task performance gains.
 
 Our results establish that medical agent skill quality can be systematically measured at the execution level, providing fine-grained diagnostic signal that task-level benchmarks cannot.
 The evaluation-driven diagnostic paradigm extends naturally beyond the medical domain to any setting where LLM agents consume structured skill specifications, offering a principled path toward understanding and improving agent--tool interaction.

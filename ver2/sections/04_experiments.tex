@@ -20,7 +20,7 @@ For the skill-augmented QA evaluation (\S\ref{ssec:ablation_results}), we additi
 
 \paragraph{Execution environment.}
 Each skill evaluation trial runs in an isolated workspace with a 300-second wall-clock timeout and a maximum of 40 agent iterations.
-The agent operates within a sandboxed nanobot AgentLoop that provides file-system access, shell execution, and Python/R interpreters, but prohibits network access during evaluation.
+The agent operates within a bounded execution loop that provides file-system access, shell execution, and Python/R interpreters, but prohibits network access during evaluation.
 This design ensures that observed tool execution outcomes reflect the skill specification rather than external data retrieval.
 
 \paragraph{Evaluation protocol.}
@@ -29,8 +29,8 @@ Each dimension produces a binary pass/fail judgment; a skill \emph{passes} overa
 A skill achieves \emph{gold} status when all eight dimensions score~1.
 
 \paragraph{Evaluation conditions.}
-All results report the \textbf{Original-Skill} condition: the agent receives the unmodified \skillmd as authored by the skill developer.
-We additionally report a \textbf{No-Skill} baseline where the agent receives only the task description without any \skillmd file, to quantify the contribution of skill specifications.
+All results report the \textbf{With-Specification} condition: the agent receives the unmodified skill specification as authored by the skill developer.
+We additionally report a \textbf{Without-Specification} baseline where the agent receives only the task description, to quantify the contribution of skill specifications.
 
 %% ============================================================
 \subsection{Large-Scale Skill Evaluation Results}
@@ -66,7 +66,7 @@ Right-hand columns report stratification by skill source repository for cross-so
 \end{table*}
 
 Three findings stand out.
-First, the agent reads and invokes skills at a very high rate (96.2\%), confirming that the mandatory read-first prompt injection successfully directs agent attention to the \skillmd file.
+First, the agent consults and invokes skills at a very high rate (96.2\%), confirming that the specification-access instruction successfully directs agent attention to the provided specification.
 Second, despite high invocation, task completion reaches only 74.3\%, producing a 22-percentage-point \rbu gap.
 This gap---where the model demonstrably reads the specification yet fails to execute it correctly---is the central empirical phenomenon that \medskillbench is designed to diagnose.
 Third, \texttt{tool\_execution\_success} is the weakest dimension at 0.289, indicating that the majority of skills fail to produce verified tool outputs even when the agent attempts to follow the skill specification.
@@ -121,7 +121,7 @@ This \texttt{tool\_type} stratification constitutes the strongest predictor of \
 \Cref{eq:decomp} decomposes the aggregate \rbu gap into a semantic grounding component $\delta_{\text{sem}} = \bar{y}_1 - \bar{y}_2$ and an execution completion component $\delta_{\text{exec}} = \bar{y}_2 - \bar{y}_3$.
 For the full corpus: $\delta_{\text{sem}} = 0.962 - 0.720 = 0.242$ and $\delta_{\text{exec}} = 0.720 - 0.743 = -0.023$.
 The semantic grounding gap accounts for more than 100\% of the aggregate \rbu gap, confirming that the dominant bottleneck is specification-to-action translation.
-The negative $\delta_{\text{exec}}$ indicates that agents sometimes complete tasks by falling back to parametric knowledge even when they fail to follow the skill specification correctly---a ``pass the exam without reading the textbook'' phenomenon.
+The negative $\delta_{\text{exec}}$ indicates that agents sometimes complete tasks through parametric knowledge even when they fail to follow the skill specification correctly.
 
 \begin{table}[t]
 \centering\small

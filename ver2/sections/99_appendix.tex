@@ -54,37 +54,37 @@ The \rbu gap is computed as the difference between \texttt{skill\_invoked} and \
 
 
 %% ============================================================
-\section{Mandatory Read-First Prompt}
+\section{Mandatory Specification-Access Instruction}
 \label{app:read_first_prompt}
 
-Every skill evaluation trial injects the following system-level prompt before the task description to ensure the agent engages with the \skillmd file.
+Every skill evaluation trial injects the following system-level instruction before the task description to ensure the agent engages with the provided skill specification.
 This prompt is appended to the agent's system message and is not visible to the judge.
 
 \begin{small}
 \begin{verbatim}
 IMPORTANT: Before attempting this task, you MUST
-read the file SKILL.md in your current working
-directory. This file contains critical instructions,
+consult the provided skill specification document.
+This document contains critical instructions,
 tool specifications, and domain knowledge required
 to complete the task correctly.
 
 Steps:
-1. Read SKILL.md completely before taking any action.
+1. Review the full skill specification before taking any action.
 2. Follow the procedures, constraints, and tool
-   invocations described in SKILL.md.
-3. If SKILL.md specifies particular tools, libraries,
+   invocations described in the specification.
+3. If the specification identifies particular tools, libraries,
    or commands, use them as directed.
-4. Only after reading and understanding SKILL.md
+4. Only after reviewing and understanding the specification
    should you proceed to address the task.
 
-Do NOT skip reading SKILL.md. Do NOT rely solely on
-your internal knowledge if SKILL.md provides
+Do NOT skip the specification. Do NOT rely solely on
+your internal knowledge if the specification provides
 specific procedures.
 \end{verbatim}
 \end{small}
 
 This prompt achieves a 96.2\% invocation rate across the full corpus of 1,462 skills, validating its effectiveness at directing agent attention.
-The remaining 3.8\% of non-invocation cases arise primarily from skills whose \skillmd files are empty, malformed, or contain only metadata headers without actionable content.
+The remaining 3.8\% of non-invocation cases arise primarily from skills whose specification documents are empty, malformed, or contain only metadata headers without actionable content.
 
 
 %% ============================================================

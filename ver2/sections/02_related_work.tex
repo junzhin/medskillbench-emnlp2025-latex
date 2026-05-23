@@ -11,7 +11,7 @@ Across 86~tasks in 11~domains, curated skills raise pass rates by 16.2~percentag
 \citet{skillnet2026} shift attention from task uplift to \emph{skill infrastructure}, scaling to 200K+ skills and proposing multi-dimensional static assessment along Safety, Completeness, Executability, Maintainability, and Cost-awareness.
 
 These works establish that skills matter and that skill quality is an infrastructure problem rather than a pure prompting problem.
-However, they still stop short of the interface layer that matters for deployment: \textsc{SkillsBench} measures task-level delta, not whether a specific skill file was actually read and followed, while \textsc{SkillNet} evaluates skill assets largely through static quality analysis and repository organization.
+However, they still stop short of the interface layer that matters for deployment: \textsc{SkillsBench} measures task-level delta, not whether a specific skill specification was actually consulted and followed, while \textsc{SkillNet} evaluates skill assets largely through static quality analysis and repository organization.
 \medskillbench bridges this gap by evaluating 1,462~medical skills (917~Tier-A) at the execution level, quantifying the \rbu gap between reading a \skillmd and correctly grounding it into action.
 
 \subsection{Medical and Biomedical Agent Benchmarks}
@@ -35,10 +35,10 @@ Recent systems show that broad medical action spaces can materially improve end-
 \citet{reflectool2025} introduce \textsc{ReflecTool} together with ClinicalAgentBench (CAB), emphasizing reflection-aware tool use across 18~clinical tasks.
 In biomedical research, \citet{stella2025} and \citet{biomni2025} push further toward tool-rich agent systems: \textsc{STELLA} couples multi-agent planning with self-evolving templates and tool growth, while \textsc{Biomni} centers a large unified biomedical action space spanning databases, software tools, and analysis routines.
 These systems make the practical case that curated tools and skills matter.
-However, they treat the tool universe as a \emph{system asset} and evaluate the agent as a whole.
-They do not isolate whether a particular authored \skillmd was actually read, correctly interpreted, and faithfully executed.
+However, they treat the available tool inventory as a \emph{system-level resource} and evaluate the agent as a whole.
+They do not isolate whether a particular authored skill specification was actually consulted, correctly interpreted, and faithfully executed.
 \medskillbench targets exactly this interface layer between skill specification and grounded execution.
-This perspective also complements generic tool-description optimization methods \citep{easytool2024,play2prompt2025,tracefree2026}, which improve documentation quality but do not benchmark execution fidelity of full medical skill files.
+This perspective also complements generic tool-description optimization methods \citep{easytool2024,play2prompt2025,tracefree2026}, which improve documentation quality but do not benchmark execution fidelity of full medical skill specifications.
 
 \paragraph{Positioning.}
 \Cref{tab:rw_comparison} summarizes how \medskillbench relates to representative skill, benchmark, and biomedical agent work.

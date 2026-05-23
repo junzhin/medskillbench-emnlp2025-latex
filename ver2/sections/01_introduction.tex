@@ -18,7 +18,7 @@ Task-level metrics conflate these fundamentally different failure modes, leaving
 \medskillbench addresses this gap through systematic skill-level evaluation that treats skill descriptions as first-class agent interfaces whose execution quality can be independently measured, decomposed across eight diagnostic dimensions, and stratified by medical domain.\footnote{Code, data, and evaluation artifacts are available at \anonrepo.}
 
 \begin{figure}[t]
-\figbox{5.2cm}{Figure 1 (Teaser): the \rbu gap. Left panel---agents read \skillmd at 96.2\% invocation. Right panel---only 74.3\% complete the specified task. The 22-pp wedge between the two represents specification grounding failure.}
+\figbox{5.2cm}{Figure 1 (Teaser): the \rbu gap. Left panel---agents consult the provided specification at 96.2\% invocation. Right panel---only 74.3\% complete the specified task. The 22-pp wedge between the two represents specification grounding failure.}
 \caption{The \rbu gap: agents read skill specifications (96.2\%) yet only complete skill-grounded tasks at 74.3\%, exposing a 22-percentage-point specification grounding failure.}
 \label{fig:teaser}
 \end{figure}
@@ -26,7 +26,7 @@ Task-level metrics conflate these fundamentally different failure modes, leaving
 \paragraph{Contribution 1: \medskillbench.}
 We introduce the first large-scale skill-level execution benchmark for medical AI agents.
 \medskillbench aggregates 1,462 skills from three open-source medical skill repositories and evaluates each in an isolated sandbox environment.
-A mandatory \emph{read-first} protocol ensures the agent must parse the \skillmd specification before attempting execution.
+A mandatory \emph{specification-access} protocol ensures the agent must consult the provided skill description before attempting execution.
 An LLM-as-judge scores each execution trajectory along eight binary dimensions---\emph{skill invocation}, \emph{correct usage}, \emph{task completion}, \emph{tool execution success}, \emph{output quality}, \emph{reasoning quality}, \emph{efficiency}, and \emph{trajectory quality}---providing fine-grained diagnostic signal rather than a single pass/fail label.
 
 \paragraph{Contribution 2: \rbu gap quantification.}
