@@ -1,4 +1,4 @@
-%!TEX root = ../main.tex
+%!TEX root = ../main_ver2_bench_only.tex
 % Appendix
 
 %% ============================================================
@@ -275,7 +275,10 @@ This appendix provides the full statistical testing framework for the skill-augm
 For each skill--question pair $(x_i, s, g_i) \in \mathcal{P}_\mu$, let $c_{i,s}^{+} = \mathbf{1}[\mathcal{M}(x_i, s) = g_i]$ (with-skill correctness) and $c_{i,s}^{-} = \mathbf{1}[\mathcal{M}(x_i, \varnothing) = g_i]$ (without-skill correctness).
 The discordant counts are:
 \begin{equation}
-b = \sum_{(i,s)} \mathbf{1}[c_{i,s}^{+} = 1 \wedge c_{i,s}^{-} = 0], \quad c = \sum_{(i,s)} \mathbf{1}[c_{i,s}^{+} = 0 \wedge c_{i,s}^{-} = 1].
+\begin{aligned}
+b &= \sum_{(i,s)} \mathbf{1}[c_{i,s}^{+} = 1 \wedge c_{i,s}^{-} = 0], \\
+c &= \sum_{(i,s)} \mathbf{1}[c_{i,s}^{+} = 0 \wedge c_{i,s}^{-} = 1].
+\end{aligned}
 \label{eq:mcnemar_counts}
 \end{equation}
 Under $H_0$: skill availability has no effect, $b$ and $c$ follow a binomial distribution with equal probabilities.

@@ -1,4 +1,4 @@
-% !TEX root = ../main.tex
+% !TEX root = ../main_ver2_bench_only.tex
 \section{Related Work}
 \label{sec:related_work}
 
@@ -6,65 +6,65 @@
 \label{sec:rw_skills}
 
 Skills extend language-model agents with reusable procedural knowledge: task descriptions, invocation conditions, parameter schemas, and multi-step workflows.
-\citet{skillsbench2026} introduce \textsc{SkillsBench}, evaluating 86~tasks across 11~domains.
-Curated skills boost agent performance by an average of 16.2~percentage points, with the medical domain showing the largest gain (+51.9~pp), while self-generated skills yield near-zero improvement.
-\citet{skillnet2026} scale the effort to over 200K~skills with \textsc{SkillNet}, proposing multi-dimensional \emph{static} evaluation along Safety, Completeness, Executability, Maintainability, and Cost-awareness.
+\citet{skillsbench2026} introduce \textsc{SkillsBench}, the first paired benchmark asking whether curated skills actually improve downstream task success.
+Across 86~tasks in 11~domains, curated skills raise pass rates by 16.2~percentage points on average, with the medical domain showing the largest gain (+51.9~pp), while self-generated skills provide near-zero benefit.
+\citet{skillnet2026} shift attention from task uplift to \emph{skill infrastructure}, scaling to 200K+ skills and proposing multi-dimensional static assessment along Safety, Completeness, Executability, Maintainability, and Cost-awareness.
 
-Both contributions establish that skill quality matters.
-However, neither grounds its evaluation in \emph{execution traces}: \textsc{SkillsBench} measures task-level delta, not whether the skill was actually invoked and followed; \textsc{SkillNet} scores interface quality without running the skill in an isolated sandbox.
-\medskillbench bridges this gap by evaluating 1,462~medical skills (917~Tier-A) at the execution level, quantifying the \rbu gap between reading a \skillmd and correctly executing it.
+These works establish that skills matter and that skill quality is an infrastructure problem rather than a pure prompting problem.
+However, they still stop short of the interface layer that matters for deployment: \textsc{SkillsBench} measures task-level delta, not whether a specific skill file was actually read and followed, while \textsc{SkillNet} evaluates skill assets largely through static quality analysis and repository organization.
+\medskillbench bridges this gap by evaluating 1,462~medical skills (917~Tier-A) at the execution level, quantifying the \rbu gap between reading a \skillmd and correctly grounding it into action.
 
 \subsection{Medical and Biomedical Agent Benchmarks}
 \label{sec:rw_medical_bench}
 
-Recent medical benchmarks have diversified the evaluation surface for language-model agents.
-\citet{medagentbench2025} present \textsc{MedAgentBench}, comprising 300~FHIR-compliant EHR tasks that test interactive clinical actions.
-\citet{healthbench2025} release \textsc{HealthBench} with 5,000~multi-turn health dialogues scored by 262~physician-authored rubrics.
-In biomedical research, \citet{labbench2024} propose \textsc{LAB-Bench}, covering 2,400+~biology research questions spanning LitQA, DBQA, and ProtocolQA.
-\citet{hle2025} introduce the \textsc{Humanity's Last Exam} (HLE), a 2,500-question expert-level benchmark published in \emph{Nature}, whose Biomedicine subset---together with \textsc{LAB-Bench}---has proven effective for evaluating biomedical agents \citep{stella2025}.
-Interactive tool-use benchmarks such as $\tau$-bench \citep{taubench2024} and \textsc{ToolSandbox} \citep{toolsandbox2024} further formalize stateful, multi-turn evaluation with programmatic verification.
-\citet{medagentgym2025} contribute \textsc{MedAgentGym}, framing medical agent training as a reinforcement learning problem over clinical environments.
+Recent medical and biomedical benchmarks have diversified the evaluation surface for language-model agents.
+\citet{medagentbench2025} present \textsc{MedAgentBench}, comprising 300~FHIR-compliant EHR tasks that test interactive clinical actions, while \citet{healthbench2025} release \textsc{HealthBench} with 5,000~multi-turn health dialogues scored by physician-authored rubrics.
+In biomedical research, \citet{labbench2024} propose \textsc{LAB-Bench}, covering 2,400+~practical biology research questions, and \citet{labbench22026} extend this line with \textsc{LABBench2}, emphasizing more realistic research-task distributions.
+\citet{medagentsbench2025} further target difficult medical reasoning by aggregating seven established datasets into a unified benchmark for modern thinking models and agent frameworks.
+\citet{hle2025} introduce the expert-level \textsc{Humanity's Last Exam} (HLE), whose Biomedicine subset---together with \textsc{LAB-Bench}---has become a standard downstream testbed for biomedical agents \citep{stella2025,biomni2025}.
+Interactive tool-use benchmarks such as $\tau$-bench \citep{taubench2024} and \textsc{ToolSandbox} \citep{toolsandbox2024} further formalize stateful, multi-turn evaluation with programmatic verification, while \citet{medagentgym2025} frame medical agent training as reinforcement learning over clinical environments.
 
-These benchmarks assess \emph{task-level} success.
-\medskillbench operates at a complementary \emph{skill level}: given a specific \skillmd, does the agent read, invoke, and correctly follow the skill specification?
+These benchmarks establish task difficulty, external validity, and realistic interaction structure.
+But they still assess \emph{task-level} success: did the agent solve the problem?
+\medskillbench operates at a complementary \emph{skill level}: given a specific \skillmd, did the agent read it, invoke it, and follow it faithfully?
 
-\subsection{Tool and Skill Description Optimization}
-\label{sec:rw_tool_opt}
+\subsection{Tool-Augmented Medical and Biomedical Agents}
+\label{sec:rw_medical_agents}
 
-A growing body of work shows that how tools are \emph{described} is itself a performance lever.
-\citet{easytool2024} compress verbose, heterogeneous tool documentation into concise, standardized instructions (\textsc{EasyTool}).
-\citet{play2prompt2025} let agents interactively explore tools to auto-generate high-quality usage demonstrations (\textsc{Play2Prompt}).
-\citet{tracefree2026} address settings where execution traces are unavailable, using curriculum transfer from trace-rich to trace-free environments to generalize tool-description rewriting (\textsc{Trace-Free+}).
-The ReAct paradigm \citep{react2023} further underscores the tight coupling between reasoning traces and tool invocation fidelity.
-
-These methods target \emph{generic} tool descriptions---typically API signatures or short docstrings.
-Medical skills are substantially more complex: they encode domain terminology, parameter schemas, safety boundaries, dependency constraints, and multi-step clinical workflows within a single \skillmd.
-Our benchmark provides the diagnostic signal needed to evaluate such optimization methods on full-length, structured medical skill documents.
+Recent systems show that broad medical action spaces can materially improve end-to-end performance when agents can retrieve and execute specialized tools.
+\citet{reflectool2025} introduce \textsc{ReflecTool} together with ClinicalAgentBench (CAB), emphasizing reflection-aware tool use across 18~clinical tasks.
+In biomedical research, \citet{stella2025} and \citet{biomni2025} push further toward tool-rich agent systems: \textsc{STELLA} couples multi-agent planning with self-evolving templates and tool growth, while \textsc{Biomni} centers a large unified biomedical action space spanning databases, software tools, and analysis routines.
+These systems make the practical case that curated tools and skills matter.
+However, they treat the tool universe as a \emph{system asset} and evaluate the agent as a whole.
+They do not isolate whether a particular authored \skillmd was actually read, correctly interpreted, and faithfully executed.
+\medskillbench targets exactly this interface layer between skill specification and grounded execution.
+This perspective also complements generic tool-description optimization methods \citep{easytool2024,play2prompt2025,tracefree2026}, which improve documentation quality but do not benchmark execution fidelity of full medical skill files.
 
 \paragraph{Positioning.}
-\Cref{tab:rw_comparison} summarizes how \medskillbench relates to prior work across five key dimensions.
+\Cref{tab:rw_comparison} summarizes how \medskillbench relates to representative skill, benchmark, and biomedical agent work.
 
 \begin{table}[t]
 \centering
 \small
 \setlength{\tabcolsep}{3pt}
-\caption{Comparison of \medskillbench with related work. \emph{Eval.}: task-level (T) or skill-level (S); parenthetical indicates execution-based (E) or static (S) evaluation. \emph{Opt.\ Target}: what is optimized. \emph{Scale}: number of evaluation items.}
+\caption{Comparison of \medskillbench with representative related work. \emph{Eval.}: task-level (T), skill-level (S), or system paper (---); parenthetical indicates execution-based (E) or static (S) evaluation when applicable. \emph{Focus}: primary evaluation or system emphasis.}
 \label{tab:rw_comparison}
+\resizebox{\columnwidth}{!}{%
 \begin{tabular}{@{}lcccr@{}}
 \toprule
-\textbf{Work} & \textbf{Eval.} & \textbf{Domain} & \textbf{Opt.\ Target} & \textbf{Scale} \\
+\textbf{Work} & \textbf{Eval.} & \textbf{Domain} & \textbf{Focus} & \textbf{Scale} \\
 \midrule
-SkillsBench     & T (S)  & General   & ---            & 86 \\
-SkillNet        & S      & General   & ---            & 200K+ \\
-MedAgentBench   & T (E)  & Clinical  & ---            & 300 \\
-HealthBench     & T (E)  & Health    & ---            & 5,000 \\
-LAB-Bench       & T (S)  & Biomed.   & ---            & 2,400+ \\
-HLE             & T (S)  & Multi     & ---            & 2,500 \\
-EasyTool        & ---    & General   & Tool desc.     & --- \\
-Play2Prompt     & ---    & General   & Tool desc.     & --- \\
-Trace-Free+     & ---    & General   & Tool desc.     & --- \\
+SkillsBench      & T (S)  & General   & Skill utility         & 86 \\
+SkillNet         & S (S)  & General   & Skill infrastructure  & 200K+ \\
+MedAgentBench    & T (E)  & Clinical  & Interactive EHR tasks & 300 \\
+LAB-Bench        & T (S)  & Biomed.   & Practical research    & 2,400+ \\
+MedAgentsBench   & T (S)  & Medical   & Complex reasoning     & 7 datasets \\
+ReflecTool / CAB & T (E)  & Clinical  & Tool-augmented agent  & 18 tasks \\
+Biomni           & ---    & Biomed.   & Unified action space  & 150 tools \\
+STELLA           & ---    & Biomed.   & Self-evolving agent   & 60+ tools \\
 \midrule
-\textbf{\medskillbench} & \textbf{S (E)} & \textbf{Medical} & \textbf{---} & \textbf{1,462} \\
+\textbf{\medskillbench} & \textbf{S (E)} & \textbf{Medical} & \textbf{Skill-spec execution} & \textbf{1,462} \\
 \bottomrule
 \end{tabular}
+}
 \end{table}
